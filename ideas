@@ -1,0 +1,80 @@
+- "save midi mappings" button
+	- saves mappings as json file for download
+
+---
+
+also, wie mache ich das am besten mit den controllern. 
+Das X und Y und so weiter muss ja nicht verändert werden. 
+
+Allerdings, wenn man sagt, man möchte irgendwann mal die controller buttons auch manipulierbar machen, dann wäre es schon gut, wenn all die info im reactive state ist. 
+
+An welcher Stelle wäre dann das Setup gut? 
+
+Eine setState funktion, die beim Mount der App ausgeführt wird? 
+Die auch dazu benutzt werden kann, einen gespeicherten ControllersState zu laden? 
+
+Sounds good!
+
+- 
+
+Ok, und an welcher Stelle packen wir... 
+Die dings rein? Also die mappings? 
+Sollen sich die Fader das selbst merken? 
+
+Ich will ja auch curves speichern. 
+
+Eigentlich wäre es cool, wenn ich quasi für eine MIDI message ein dict habe, an welche faders die message geht. 
+Und nichts davon braucht reactive zu sein - wobei: ich will eigentlich für einen Fader auch wissen, ob er von irgendwas gesteuert wird, um das Mapping anzeigen und löschen zu können. 
+
+Also. Ich brauch eine map in beide Richtungen. 
+
+- 
+
+Ich will eigentlich, dass unterschiedliche protokolle von hardware controllern unterstützt werden könnten. 
+
+Daher will ich, dass die midi mapping logik abstrahiert ist und außerhalb von dem controllers store liegt. 
+
+Z.B. in App. Was brauche ich dann für ein Interface? 
+Es gibt halt verschiedene Kombinationen von controllern...
+
+Ich mach mal die offensichtlichen: 
+poti/fader auf fader
+key auf key
+
+Ich glaube ich brauche eine Klasse Mapping. 
+Vielleicht muss die auch in ihren eigenen store.
+
+Ein Fader hat dann n Mappings. 
+Ein Mapping kennt den Fader und ist in einem dict zur MIDI Id. 
+
+- 
+
+Hmm, die mappings sollten vielleicht doch auch in einen eigenen store. 
+Denn vielleicht will man sich mal alle anzeigen lassen. 
+Eines Tages. 
+Oder ich lasse sie erstmal hier. 
+
+Man kann sie nur vom Controller aus löschen oder so. 
+Und gespeichert werden sie auch erstmal nicht. 
+
+Oh ja, für die Curves muss das auch in einen eigenen store!
+
+Und damit nicht so viel in App.vue liegt. 
+
+- 
+
+Also gut. Kurz vor knapp nochmal hängen geblieben: 
+Bin nicht sicher, was bei auswahl eines midi signal tracks rüber geschickt werden soll. Eigentlich: typ + id des midi tracks. 
+Nur habe ich diese Datenstruktur noch nicht. 
+
+Ich habe die intern verwendeten Records. 
+Und die signals. Aber unterschiedliche signals gehen auf einen Record. 
+
+Ich glaube, ich sollte einfach bei den Records bleiben. 
+Müsste die dann exportieren. 
+
+- 
+
+Was noch cool wäre, diese parameter, die auch zufällig gesetzt werden neu triggern, aber das ist jetzt zu viel. 
+Meine Ohren tun weh :( 
+Bin grade bei der Jam. 

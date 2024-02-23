@@ -1,0 +1,46 @@
+/* color palette from <https://github.com/vuejs/theme> */
+:root {
+  --color-background: #222222;
+  --color-text: #f3f3f3;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+  font-family: monospace; 
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background);
+  overflow-x: hidden;
+  margin: 0;
+}
+
+input {
+  background-color: #050505;
+  padding: 0.25rem;
+  margin: 0.25rem; 
+  border-radius: 0.25rem;
+  border: 2px solid #555;
+  color: var(--color-text);
+}
+
+button {
+  background-color: #eee;
+  padding: 0.25rem;
+  margin: 0.25rem; 
+  border-radius: 0.25rem;
+  color: #222;
+  cursor: pointer;
+}
+
+input:focus {
+  outline: none;
+  border-color: #eee;
+}
