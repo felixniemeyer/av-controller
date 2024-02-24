@@ -4,7 +4,7 @@ import { ref, onMounted } from 'vue'
 import FaderComponent from './components/FaderComponent.vue'
 import PadComponent from './components/PadComponent.vue'
 
-import { useControlsStore, Pad, Fader, Control } from './stores/controls'
+import { useControlsStore, Pad, Fader } from './stores/controls'
 import { useMappingsStore, type MidiSource } from './stores/mappings'
 
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
@@ -26,8 +26,8 @@ onMounted(() => {
 })
 
 function tabClosed () {
-  console.log('tab closed')
-  tab.value = null
+  console.log('tab reported closing')
+  // tab.value = null
 }
 
 function confirmOnEnter(e: KeyboardEvent) {
@@ -46,6 +46,8 @@ function openVisualsTab() {
     return
   } else {
     window.addEventListener('message', (event) => {
+      console.log('received message', event.data)
+
       if(tab.value && event.origin == tabOrigin) {
         console.log('received message from tab', event.data)
         const type = event.data.type

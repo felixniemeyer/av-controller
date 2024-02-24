@@ -39,7 +39,7 @@ const sliderStyle = computed(() => {
 })
 
 const backgroundStyle = computed(() => {
-  const color = props.fader.spec
+  const color = props.fader.spec.color
   return {
     backgroundColor: shade(0.5, color),
     borderColor: color,
