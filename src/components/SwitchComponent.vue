@@ -3,20 +3,20 @@ import { computed } from 'vue'
 
 // for color manipulation
 import { shade } from 'polished'
-import { Pad } from '@/stores/controls'
+import { Switch } from '@/stores/controls'
 
 import MappingsIndicator from './MappingsIndicator.vue'
 
 // vue
 const props = defineProps({
-  pad: {
-    type: Object as () => Pad,
+  switch: {
+    type: Object as () => Switch,
     required: true,
   },
 })
 
 const sliderStyle = computed(() => {
-  const spec = props.pad.spec
+  const spec = props.switch.spec
   return {
     width: `${spec.width}%`,
     height: `${spec.height}%`,
@@ -26,55 +26,45 @@ const sliderStyle = computed(() => {
 })
 
 const color = computed(() => {
-  const spec = props.pad.spec
-  if (props.pad.pressed) {
-    return shade(0.35, spec.color)
+  const spec = props.switch.spec
+  if (props.switch.on) {
+    return shade(0.5, spec.color)
   } else {
     return spec.color
   }
 })
 
-const basisStyle = computed(() => {
-  const spec = props.pad.spec
+const backgroundStyle = computed(() => {
+  const spec = props.switch.spec
   return {
     backgroundColor: color.value,
-    boxShadow: `0 0 2rem -0.5rem ${spec.color}`,
+    boxShadow: `0 0 3rem -2rem ${spec.color}`,
     borderColor: spec.color,
   }
 })
 
 function touchstart(e: TouchEvent) {
-  props.pad.press(1)
+  props.switch.touchDown()
   e.preventDefault()
-}
-
-function touchend() {
-  props.pad.release()
 }
 
 </script>
 
 <template>
-  <div class="pad-control" :style=sliderStyle >
+  <div class="control" :style=sliderStyle >
     <div
-      class="basis"
-      :style=basisStyle
+      class="basis" 
+      :style=backgroundStyle
       @touchstart="touchstart"
-      @touchend="touchend"
       >
     </div>
     <div class="centered-label" >
-      {{ props.pad.spec.name }}
+      {{ props.switch.spec.name }}
     </div>
-    <MappingsIndicator :mappings="props.pad.mappings"/>
+    <MappingsIndicator :mappings="props.switch.mappings"/>
   </div>
 </template>
 
 <style scoped>
 @import './control-styles.css';
-
-.pad-control{
-  position: absolute;
-}
-
 </style>

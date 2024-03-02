@@ -78,6 +78,41 @@ export class Pad extends Control {
   }
 }
 
+export class Switch extends Control {
+  on: boolean
+
+  constructor(
+    public spec: Specs.SwitchSpec,
+  ) {
+    super()
+    this.on = spec.initiallyOn
+  }
+
+  touchDown() {
+    this.onTouch(this)
+    this.on = !this.on
+    this.onUpdate(this.on)
+  }
+}
+
+export class Selector extends Control {
+  index: number
+
+  constructor(
+    public spec: Specs.SelectorSpec,
+  ) {
+    super()
+    this.index = spec.initialIndex
+  }
+
+  select(value: number) {
+    this.onTouch(this)
+    this.index = value
+    this.onUpdate(value)
+  }
+}
+
+
 export const useControlsStore = defineStore('controls', () => {
   const controls = ref([] as Control[])
 

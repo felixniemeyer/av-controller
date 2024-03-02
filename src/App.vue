@@ -3,8 +3,10 @@ import { ref, onMounted } from 'vue'
 
 import FaderComponent from './components/FaderComponent.vue'
 import PadComponent from './components/PadComponent.vue'
+import SwitchComponent from './components/SwitchComponent.vue'
+import SelectorComponent from './components/SelectorComponent.vue'
 
-import { useControlsStore, Pad, Fader } from './stores/controls'
+import { useControlsStore, Pad, Fader, Switch, Selector } from './stores/controls'
 import { useMappingsStore, type MidiSource } from './stores/mappings'
 
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
@@ -71,6 +73,10 @@ function createControls(msg: Messages.AnnounceReceiver) {
       control = new Pad(spec as Specs.PadSpec)
     } else if(spec.type === 'fader') {
       control = new Fader(spec as Specs.FaderSpec)
+    } else if(spec.type === 'switch') {
+      control = new Switch(spec as Specs.SwitchSpec)
+    } else if(spec.type === 'selector') {
+      control = new Selector(spec as Specs.SelectorSpec)
     } else {
       console.error('unknown control type', spec)
     }
@@ -150,6 +156,8 @@ function mapMIDIActivity(midiSource: MidiSource) {
     <template v-else v-for="control, i in controlsStore.controls">
       <PadComponent v-if="control.spec.type === 'pad'" :pad="control as Pad" :key="i"/>
       <FaderComponent v-if="control.spec.type === 'fader'" :fader="control as Fader" :key="i"/>
+      <SwitchComponent v-if="control.spec.type === 'switch'" :switch="control as Switch" :key="i"/>
+      <SelectorComponent v-if="control.spec.type === 'selector'" :selector="control as Selector" :key="i"/>
     </template>
   </div>
 </template>

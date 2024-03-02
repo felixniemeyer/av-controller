@@ -22,8 +22,6 @@ const formattedValue = computed(() => {
 })
 
 const normalizedValue = computed(() => {
-  // if (props.fader.curve === 'linear') {
-  // }
   const spec = props.fader.spec
   return (currentValue.value - spec.min) / (spec.max - spec.min)
 })
@@ -41,7 +39,7 @@ const sliderStyle = computed(() => {
 const backgroundStyle = computed(() => {
   const color = props.fader.spec.color
   return {
-    backgroundColor: shade(0.5, color),
+    backgroundColor: shade(0.35, color),
     borderColor: color,
     boxShadow: `0 0 3rem -2rem ${color}`
   }
@@ -89,7 +87,7 @@ function updateValueY(touchY: number) : void  {
 <template>
   <div class="slider" :style=sliderStyle >
     <div
-      class="background"
+      class="basis slider-basis"
       :style=backgroundStyle
       @touchstart="touchstart"
       @touchmove="touchmove"
@@ -98,23 +96,28 @@ function updateValueY(touchY: number) : void  {
       </div>
     </div>
     <MappingsIndicator :mappings="props.fader.mappings"/>
-    <div class="text">
-      {{ props.fader.spec.name }}<br/>
+    <div class="label-top">
+      {{ props.fader.spec.name }}
+    </div>
+    <div class="label-bottom">
       {{ formattedValue }}
     </div>
   </div>
 </template>
 
 <style scoped>
+@import './control-styles.css';
+
 .slider {
   position: absolute;
 }
 
-.background {
+.slider-basis{
   position: absolute;
   width: calc(100% - 1rem);
   height: calc(100% - 1rem);
   margin: 0.5rem;
+  border: none; 
   border-radius: 0.5rem;
   border-left: 0.5rem solid #000;
   overflow: hidden;
@@ -126,19 +129,6 @@ function updateValueY(touchY: number) : void  {
   width: 100%;
   pointer-events: none;
   border-bottom-right-radius: 0.5rem;
-}
-
-.text {
-  color: #000;
-  position: absolute;
-  top: 1rem;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  pointer-events: none;
-  font-family: monospace;
-  font-weight: bold;
-  user-select: none;
 }
 
 </style>
