@@ -3,9 +3,9 @@ import { computed } from 'vue'
 
 // for color manipulation
 import { shade } from 'polished'
-import { Switch } from '@/stores/controls'
+import { Switch } from '@/controls'
 
-import MappingsIndicator from './MappingsIndicator.vue'
+import MappingsIndicator from '../MappingsIndicator.vue'
 
 // vue
 const props = defineProps({
@@ -15,7 +15,7 @@ const props = defineProps({
   },
 })
 
-const sliderStyle = computed(() => {
+const posize = computed(() => {
   const spec = props.switch.spec
   return {
     width: `${spec.width}%`,
@@ -51,7 +51,7 @@ function touchstart(e: TouchEvent) {
 </script>
 
 <template>
-  <div class="control" :style=sliderStyle >
+  <div class="control" :style=posize >
     <div
       class="basis" 
       :style=backgroundStyle

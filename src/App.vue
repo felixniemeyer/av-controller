@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-import FaderComponent from './components/FaderComponent.vue'
-import PadComponent from './components/PadComponent.vue'
-import SwitchComponent from './components/SwitchComponent.vue'
-import SelectorComponent from './components/SelectorComponent.vue'
+import FaderComponent from './components/controls/Fader.vue'
+import PadComponent from './components/controls/Pad.vue'
+import SwitchComponent from './components/controls/Switch.vue'
+import SelectorComponent from './components/controls/Selector.vue'
+import ConfirmButtonComponent from './components/controls/ConfirmButton.vue'
+import LabelComponent from './components/controls/Label.vue'
 
-import { useControlsStore, Pad, Fader, Switch, Selector } from './stores/controls'
+import * as Controls from './controls'
 import { useMappingsStore, type MidiSource } from './stores/mappings'
 
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
 
 import { Messages, Specs } from 'av-controls'
 
-
-const controlsStore = useControlsStore()
 const mappingsStore = useMappingsStore()
 
 let tab = ref(null as Window | null)
@@ -40,6 +40,13 @@ function confirmOnEnter(e: KeyboardEvent) {
   }
 }
 
+function openExample(url: string) {
+  visualTabUrl.value = url
+  openVisualsTab()
+}
+
+const waitingForControls = ref(false)
+
 function openVisualsTab() {
   tab.value = window.open(visualTabUrl.value)
   tabOrigin = new URL(visualTabUrl.value).origin
@@ -47,6 +54,7 @@ function openVisualsTab() {
     console.error('could not open tab')
     return
   } else {
+    waitingForControls.value = true
     window.addEventListener('message', (event) => {
       console.log('received message', event.data)
 
@@ -55,7 +63,9 @@ function openVisualsTab() {
         const type = event.data.type
         if(type === Messages.AnnounceReceiver.type) {
           const msg = event.data as Messages.AnnounceReceiver
+          controlsLabel.value.spec.name = msg.name
           createControls(msg)
+          waitingForControls.value = false
         } else if(type === Messages.TabClosing.type) {
           tabClosed()
         }
@@ -64,19 +74,24 @@ function openVisualsTab() {
   }
 }
 
+const controls = ref([] as Controls.Control[])
 function createControls(msg: Messages.AnnounceReceiver) {
-  const controls = []
+  const results = []
   for(let i = 0; i < msg.specs.length; i++) {
     const spec = msg.specs[i]
     let control 
     if(spec.type === 'pad') {
-      control = new Pad(spec as Specs.PadSpec)
+      control = new Controls.Pad(spec as Specs.PadSpec)
     } else if(spec.type === 'fader') {
-      control = new Fader(spec as Specs.FaderSpec)
+      control = new Controls.Fader(spec as Specs.FaderSpec)
     } else if(spec.type === 'switch') {
-      control = new Switch(spec as Specs.SwitchSpec)
+      control = new Controls.Switch(spec as Specs.SwitchSpec)
     } else if(spec.type === 'selector') {
-      control = new Selector(spec as Specs.SelectorSpec)
+      control = new Controls.Selector(spec as Specs.SelectorSpec)
+    } else if(spec.type === 'confirm-button') {
+      control = new Controls.ConfirmButton(spec as Specs.ConfirmButtonSpec)
+    } else if(spec.type === 'label') {
+      control = new Controls.Label(spec as Specs.LabelSpec)
     } else {
       console.error('unknown control type', spec)
     }
@@ -86,35 +101,39 @@ function createControls(msg: Messages.AnnounceReceiver) {
         sendUpdateToTab(index, payload)
       }
       control.onTouch = mappingsStore.maybeMapTo
-      controls[i] = control
+      results[i] = control
     }
   }
+  controls.value = results
+}
 
-  // special controls
-  const mapButton = new Pad(
-    new Specs.PadSpec('map', 90, 80, 10, 20, '#2aa')
-  )
-  mapButton.onTouch = () => {
-    if(mappingsStore.midiSourceForMapping !== undefined) {
-      mappingsStore.midiSourceForMapping = undefined
-    } else {
-      showMidiSignals.value = true
-    }
+
+const exitButton = ref(new Controls.ConfirmButton(
+  new Specs.ConfirmButtonSpec('exit', 0, 0, 10, 100, '#c23')
+))
+exitButton.value.onUpdate = (confirmed) => {
+  if(confirmed) {
+    tab.value = null
   }
-  controls.push(mapButton)
+}
 
-  const rmMapButton = new Pad(
-    new Specs.PadSpec('remove mapping', 80, 80, 10, 20, '#c23')
-  )
-  rmMapButton.onTouch = () => {
-    mappingsStore.removeMapping = !mappingsStore.removeMapping
-    console.log('remove mapping', mappingsStore.removeMapping)
-  }
-  controls.push(rmMapButton)
+const controlsLabel = ref(new Controls.Label(
+  new Specs.LabelSpec('controls', 10, 0, 70, 100, '#fff', 'center')
+))
 
-  mapButton.onUpdate = showMidiSignalLogger
+const mapSwitch = ref(new Controls.Switch(
+  new Specs.SwitchSpec('map', 90, 0, 10, 100, '#2aa', false)
+))
+mapSwitch.value.onUpdate = (isOn: boolean) => {
+  showMidiSignals.value = isOn 
+}
 
-  controlsStore.setControls(controls)
+const rmMapButton = ref(new Controls.Switch (
+  new Specs.SwitchSpec('remove mapping', 80, 0, 10, 100, '#c23', false)
+))
+rmMapButton.value.onUpdate = (isOn: boolean) => {
+  mappingsStore.removeMapping = isOn
+  console.log('remove mapping', mappingsStore.removeMapping)
 }
 
 function sendUpdateToTab(controlIndex: number, payload: any) {
@@ -128,10 +147,6 @@ function sendUpdateToTab(controlIndex: number, payload: any) {
 }
 
 const showMidiSignals = ref(false)
-
-function showMidiSignalLogger() {
-  showMidiSignals.value = true
-}
 
 function mapMIDIActivity(midiSource: MidiSource) {
   showMidiSignals.value = false
@@ -147,18 +162,45 @@ function mapMIDIActivity(midiSource: MidiSource) {
       Open a new tab with a av-control receiving webapp
     </p>
     <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
-    <button class='button' @click="openVisualsTab">open</button>
+    <button @click="openVisualsTab">open</button>
+    <div class=examples>
+      <div class=exwrap @click="openExample('http://localhost:5173')">
+      <div class=example>
+        music-box (localhost)
+      </div>
+      </div>
+      <div class=exwrap @click="openExample('https://gfx.aimparency.org')">
+      <div class=example>
+        music-box (gfx.aimparency.org)
+      </div>
+      </div>
+    </div>
   </div>
-  <div v-else class="control-area">
-    <template v-if="showMidiSignals">
-      <MIDISignalLogger @cancel="showMidiSignals = false" @select="mapMIDIActivity"/>
-    </template>
-    <template v-else v-for="control, i in controlsStore.controls">
-      <PadComponent v-if="control.spec.type === 'pad'" :pad="control as Pad" :key="i"/>
-      <FaderComponent v-if="control.spec.type === 'fader'" :fader="control as Fader" :key="i"/>
-      <SwitchComponent v-if="control.spec.type === 'switch'" :switch="control as Switch" :key="i"/>
-      <SelectorComponent v-if="control.spec.type === 'selector'" :selector="control as Selector" :key="i"/>
-    </template>
+  <div v-else class="app">
+    <div class="control-header">
+      <ConfirmButtonComponent :confirmButton="exitButton" />
+      <LabelComponent :label="controlsLabel" />
+      <!-- TBD! PadComponent :pad="saveMappingsButton" /-->
+      <SwitchComponent :switch="mapSwitch" />
+      <SwitchComponent :switch="rmMapButton" />
+    </div>
+    <MIDISignalLogger v-if="showMidiSignals" @select="mapMIDIActivity"/>
+    <div v-else class="control-area">
+      <template v-if="waitingForControls">
+        <div class='wait-screen'>
+          <p>Waiting for controls...</p>
+          <button @click="tab = null">abort / go back</button>
+        </div>
+      </template>
+      <template v-else v-for="control, i in controls">
+        <PadComponent v-if="control.spec.type === 'pad'" :pad="control as Controls.Pad" :key="i"/>
+        <FaderComponent v-if="control.spec.type === 'fader'" :fader="control as Controls.Fader" :key="i"/>
+        <SwitchComponent v-if="control.spec.type === 'switch'" :switch="control as Controls.Switch" :key="i"/>
+        <SelectorComponent v-if="control.spec.type === 'selector'" :selector="control as Controls.Selector" :key="i"/>
+        <ConfirmButtonComponent v-if="control.spec.type === 'confirm-button'" :confirmButton="control as Controls.ConfirmButton" :key="i"/>
+        <LabelComponent v-if="control.spec.type === 'label'" :label="control as Controls.Label" :key="i"/>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -170,27 +212,71 @@ function mapMIDIActivity(midiSource: MidiSource) {
   & p {
     margin: 0.5rem; 
   }
-  & input, .button {
-    padding: 0.5rem; 
-  }
-  & button {
-    background-color: #fff3;
-    display: inline-block;
-    border-radius: 0.5rem;
-    border: none; 
-    color: #fff; 
-    margin-left: 0.5rem; 
-  }
+}
+
+button {
+  background-color: #fff3;
+  padding: 0.5rem;
+  display: inline-block;
+  border-radius: 0.5rem;
+  border: none; 
+  color: #fff; 
+  margin-left: 0.5rem; 
+}
+
+.control-header {
+  position: relative;
+  top: 0; 
+  left: 0;
+  width: 100%;
+  height: 5rem;
+  border: 0.5rem solid var(--background-color);
+  box-sizing: border-box;
+  background-color: #fff2;
 }
 
 .control-area {
   position: absolute;
-  top: 0;
+  top: 5rem;
   left: 0;
-  height: 100%;
+  height: calc(100% - 5rem);
   width: 100%;
-  border: 2rem solid var(--color-background);
+  border: 0.5rem solid var(--background-color);
   box-sizing: border-box;
+}
+
+.exwrap {
+  display: inline-block;
+  margin: 0.5rem; 
+  width: 2rem; 
+  height: 20rem;
+  background-color: #fff3;
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+
+.exwrap:hover {
+  background-color: #fff6;
+}
+
+.example {
+  width: 2rem; 
+  height: 2rem; 
+  overflow: visible;
+  white-space: nowrap;
+  position: relative;
+  display: inline-block;
+  transform-origin: 25% 50%;
+  transform: rotate(90deg);
+  pointer-events: none;
+}
+
+.wait-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
 }
 
 </style>

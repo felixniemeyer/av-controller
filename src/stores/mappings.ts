@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { Control, Fader, Pad } from './controls'
+import { Control, Fader, Pad } from '../controls'
 import { midiListener, ControlChange, NoteOn, MidiSignal, KeyMidiSignal, NoteOff} from '@/midiListener'
 
 export abstract class Mapping {
@@ -50,7 +50,6 @@ export const useMappingsStore = defineStore('mappings', () => {
 
   function maybeMapTo(controller: Control) {
     if(removeMapping.value) {
-      removeMapping.value = false
       const removedMappings = controller.removeMappingsAndList()
       // find mapping in mappings and remove it
       for(const sourceId in mappings.value) {

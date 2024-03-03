@@ -1,8 +1,8 @@
 <script setup lang=ts>
 import { computed } from 'vue'
-import { Fader } from '@/stores/controls'
+import { Fader } from '@/controls'
 
-import MappingsIndicator from './MappingsIndicator.vue'
+import MappingsIndicator from '../MappingsIndicator.vue'
 
 // for color manipulation
 import { shade } from 'polished'
@@ -26,7 +26,7 @@ const normalizedValue = computed(() => {
   return (currentValue.value - spec.min) / (spec.max - spec.min)
 })
 
-const sliderStyle = computed(() => {
+const posize = computed(() => {
   const spec = props.fader.spec
   return {
     width: `${spec.width}%`,
@@ -85,7 +85,7 @@ function updateValueY(touchY: number) : void  {
 </script>
 
 <template>
-  <div class="slider" :style=sliderStyle >
+  <div class="control" :style=posize >
     <div
       class="basis slider-basis"
       :style=backgroundStyle
@@ -107,10 +107,6 @@ function updateValueY(touchY: number) : void  {
 
 <style scoped>
 @import './control-styles.css';
-
-.slider {
-  position: absolute;
-}
 
 .slider-basis{
   position: absolute;

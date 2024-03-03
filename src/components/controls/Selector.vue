@@ -3,9 +3,9 @@ import { computed } from 'vue'
 
 // for color manipulation
 import { lighten, shade } from 'polished'
-import { Selector } from '@/stores/controls'
+import { Selector } from '@/controls'
 
-import MappingsIndicator from './MappingsIndicator.vue'
+import MappingsIndicator from '../MappingsIndicator.vue'
 
 // vue
 const props = defineProps({

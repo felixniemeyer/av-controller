@@ -3,9 +3,9 @@ import { computed } from 'vue'
 
 // for color manipulation
 import { shade } from 'polished'
-import { Pad } from '@/stores/controls'
+import { Pad } from '@/controls'
 
-import MappingsIndicator from './MappingsIndicator.vue'
+import MappingsIndicator from '../MappingsIndicator.vue'
 
 // vue
 const props = defineProps({
@@ -15,7 +15,7 @@ const props = defineProps({
   },
 })
 
-const sliderStyle = computed(() => {
+const posize = computed(() => {
   const spec = props.pad.spec
   return {
     width: `${spec.width}%`,
@@ -55,7 +55,7 @@ function touchend() {
 </script>
 
 <template>
-  <div class="pad-control" :style=sliderStyle >
+  <div class="control" :style=posize >
     <div
       class="basis"
       :style=basisStyle
@@ -72,9 +72,5 @@ function touchend() {
 
 <style scoped>
 @import './control-styles.css';
-
-.pad-control{
-  position: absolute;
-}
 
 </style>

@@ -1,7 +1,4 @@
-import { ref } from 'vue'
-import { defineStore } from 'pinia'
-
-import { Mapping } from './mappings'
+import { Mapping } from './stores/mappings'
 
 import { Specs } from 'av-controls'
 
@@ -112,16 +109,34 @@ export class Selector extends Control {
   }
 }
 
+export class ConfirmButton extends Control {
+  awaitingConfirmation: boolean = false
 
-export const useControlsStore = defineStore('controls', () => {
-  const controls = ref([] as Control[])
-
-  function setControls(controllerSet: Control[]) {
-    controls.value = controllerSet
+  constructor(
+    public spec: Specs.PadSpec,
+  ) {
+    super()
   }
 
-  return {
-    controls,
-    setControls
-  } 
-})
+  press() {
+    if(this.awaitingConfirmation) {
+      this.onUpdate(true)
+      this.awaitingConfirmation = false
+    } else {
+      this.awaitingConfirmation = true
+      this.onUpdate(false)
+    }
+  }
+
+  cancel() {
+    this.awaitingConfirmation = false
+  }
+}
+
+export class Label extends Control {
+  constructor(
+    public spec: Specs.LabelSpec,
+  ) {
+    super()
+  }
+}
