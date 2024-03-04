@@ -64,6 +64,20 @@ function touchstart(e: TouchEvent) {
   updateValueY(touch.clientY)
 }
 
+
+let mousedown = false
+function onMousedown(e: MouseEvent) {
+  e.preventDefault()
+  const div = e.currentTarget as HTMLDivElement
+  rect = div.getBoundingClientRect()
+  mousedown = true
+  updateValueY(e.clientY)
+}
+
+function endMousedown(e: MouseEvent) {
+  mousedown = false
+}
+
 function touchmove(e: TouchEvent) {
   e.preventDefault()
   if(touchId !== null) {
@@ -72,6 +86,12 @@ function touchmove(e: TouchEvent) {
         updateValueY(touch.clientY)
       }
     }
+  }
+}
+
+function mousemove(e: MouseEvent) {
+  if(mousedown) {
+    updateValueY(e.clientY)
   }
 }
 
@@ -91,6 +111,11 @@ function updateValueY(touchY: number) : void  {
       :style=backgroundStyle
       @touchstart="touchstart"
       @touchmove="touchmove"
+
+      @mousedown="onMousedown"
+      @mouseleave="endMousedown"
+      @mouseup="endMousedown"
+      @mousemove="mousemove"
       >
       <div class="meter" :style=meterStyle>
       </div>

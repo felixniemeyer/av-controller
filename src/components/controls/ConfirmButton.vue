@@ -33,7 +33,7 @@ const basisStyle = computed(() => {
   }
 })
 
-function touchstart(e: TouchEvent) {
+function press(e: TouchEvent | MouseEvent) {
   props.confirmButton.press();
   const target = e.target
   if(target instanceof HTMLElement) {
@@ -51,7 +51,8 @@ function touchstart(e: TouchEvent) {
       class="basis"
       :style=basisStyle
       tabindex="0"
-      @touchstart="touchstart"
+      @touchstart="press"
+      @mousedown="press"
       @blur="props.confirmButton.cancel"
       >
     </div>

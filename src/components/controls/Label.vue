@@ -15,7 +15,7 @@ const props = defineProps({
   },
 })
 
-const sliderStyle = computed(() => {
+const posize = computed(() => {
   const spec = props.label.spec
   return {
     width: `${spec.width}%`,
@@ -25,10 +25,9 @@ const sliderStyle = computed(() => {
   }
 })
 
-const backgroundStyle = computed(() => {
+const basisStyle = computed(() => {
   const spec = props.label.spec
   return {
-    backgroundColor: color.value,
     boxShadow: `0 0 3rem -2rem ${spec.color}`,
     borderColor: spec.color,
   }
@@ -43,7 +42,8 @@ const labelClass = {
 </script>
 
 <template>
-  <div class="control" :style=sliderStyle >
+  <div class="control" :style=posize >
+    <div class=basis :style=basisStyle></div>
     <div :class="labelClass[props.label.spec.labelPosition]">
       {{ props.label.spec.name}}
     </div>

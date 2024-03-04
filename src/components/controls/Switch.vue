@@ -43,7 +43,7 @@ const backgroundStyle = computed(() => {
   }
 })
 
-function touchstart(e: TouchEvent) {
+function press(e: TouchEvent | MouseEvent) {
   props.switch.touchDown()
   e.preventDefault()
 }
@@ -55,7 +55,8 @@ function touchstart(e: TouchEvent) {
     <div
       class="basis" 
       :style=backgroundStyle
-      @touchstart="touchstart"
+      @touchstart="press"
+      @click="press"
       >
     </div>
     <div class="centered-label" >

@@ -28,8 +28,7 @@ onMounted(() => {
 })
 
 function tabClosed () {
-  console.log('tab reported closing')
-  // tab.value = null
+  waitingForControls.value = true
 }
 
 function confirmOnEnter(e: KeyboardEvent) {
@@ -56,14 +55,11 @@ function openVisualsTab() {
   } else {
     waitingForControls.value = true
     window.addEventListener('message', (event) => {
-      console.log('received message', event.data)
-
       if(tab.value && event.origin == tabOrigin) {
-        console.log('received message from tab', event.data)
         const type = event.data.type
         if(type === Messages.AnnounceReceiver.type) {
           const msg = event.data as Messages.AnnounceReceiver
-          controlsLabel.value.spec.name = msg.name
+          controlsLabel.value.spec.name = `controlling ${msg.name}`
           createControls(msg)
           waitingForControls.value = false
         } else if(type === Messages.TabClosing.type) {
@@ -118,7 +114,7 @@ exitButton.value.onUpdate = (confirmed) => {
 }
 
 const controlsLabel = ref(new Controls.Label(
-  new Specs.LabelSpec('controls', 10, 0, 70, 100, '#fff', 'center')
+  new Specs.LabelSpec('controls', 10, 0, 70, 100, '#555', 'center')
 ))
 
 const mapSwitch = ref(new Controls.Switch(
@@ -138,7 +134,6 @@ rmMapButton.value.onUpdate = (isOn: boolean) => {
 
 function sendUpdateToTab(controlIndex: number, payload: any) {
   if(tab.value == null) {
-    console.error('tab is null')
     return
   } else {
     const msg = new Messages.ControlMessage(controlIndex, payload)
@@ -153,6 +148,10 @@ function mapMIDIActivity(midiSource: MidiSource) {
   mappingsStore.midiSourceForMapping = midiSource
 }
 
+const examples = {
+  'music-box': import.meta.env.DEV ? 'http://localhost:5173' :  'https://gfx.aimparency.org/music-box-song/'
+}
+
 </script>
 
 <template>
@@ -164,15 +163,10 @@ function mapMIDIActivity(midiSource: MidiSource) {
     <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
     <button @click="openVisualsTab">open</button>
     <div class=examples>
-      <div class=exwrap @click="openExample('http://localhost:5173')">
-      <div class=example>
-        music-box (localhost)
-      </div>
-      </div>
-      <div class=exwrap @click="openExample('https://gfx.aimparency.org')">
-      <div class=example>
-        music-box (gfx.aimparency.org)
-      </div>
+      <div v-for="(url, name) in examples" class=exwrap @click="openExample(url)">
+        <div class=example>
+          {{ name }}
+        </div>
       </div>
     </div>
   </div>
@@ -226,11 +220,11 @@ button {
 
 .control-header {
   position: relative;
-  top: 0; 
-  left: 0;
-  width: 100%;
-  height: 5rem;
-  border: 0.5rem solid var(--background-color);
+  top: 0.5rem; 
+  left: 0.5rem;
+  width: calc(100% - 1rem);
+  height: 4.5rem;
+  border-radius: 0.5rem;
   box-sizing: border-box;
   background-color: #fff2;
 }
@@ -238,10 +232,9 @@ button {
 .control-area {
   position: absolute;
   top: 5rem;
-  left: 0;
-  height: calc(100% - 5rem);
-  width: 100%;
-  border: 0.5rem solid var(--background-color);
+  left: 0.5rem;
+  height: calc(100% - 5.5rem);
+  width: calc(100% - 1rem);
   box-sizing: border-box;
 }
 

@@ -43,7 +43,7 @@ const basisStyle = computed(() => {
   }
 })
 
-function touchstart(e: TouchEvent) {
+function touchstart(e: TouchEvent | MouseEvent) {
   props.pad.press(1)
   e.preventDefault()
 }
@@ -60,7 +60,9 @@ function touchend() {
       class="basis"
       :style=basisStyle
       @touchstart="touchstart"
+      @mousedown="touchstart"
       @touchend="touchend"
+      @mouseup="touchend"
       >
     </div>
     <div class="centered-label" >

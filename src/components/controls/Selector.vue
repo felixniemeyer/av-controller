@@ -42,7 +42,7 @@ const optionColor = computed(() => {
   return lighten(0.1, props.selector.spec.color)
 })
 
-function selectOption(e: TouchEvent, index: number) {
+function selectOption(e: TouchEvent | MouseEvent, index: number) {
   props.selector.select(index)
   e.preventDefault()
 }
@@ -62,7 +62,8 @@ function selectOption(e: TouchEvent, index: number) {
         <div
           v-for="(option, index) in props.selector.spec.options"
           :key="index"
-          @touchstart="e => selectOption(e, index)"
+          @touchstart="selectOption($event, index)"
+          @mousedown="selectOption($event, index)"
           class="option"
           :style="{backgroundColor: index === props.selector.index ? selectedColor : optionColor}"
           >
