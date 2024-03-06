@@ -88,6 +88,7 @@ function selectOption(e: TouchEvent | MouseEvent, index: number) {
   font-weight: bold;
   text-align: center;
   padding: 0.2rem; 
+  user-select: none;
 }
 
 .options {

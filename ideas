@@ -1,3 +1,7 @@
+- control with keys
+  - tabindex
+  - arrow up down
+
 - "save midi mappings" button
 	- saves mappings as json file for download
 

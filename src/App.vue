@@ -31,9 +31,13 @@ function tabClosed () {
   waitingForControls.value = true
 }
 
-function confirmOnEnter(e: KeyboardEvent) {
-  if(e.key === 'Enter') {
-    openVisualsTab()
+function confirmOnEnter(e: KeyboardEvent, url?: string) {
+  if(e.key === 'Enter' || e.key === ' ') {
+    if(url) {
+      openExample(url)
+    } else {
+      openVisualsTab()
+    }
     e.stopPropagation()
     e.preventDefault()
   }
@@ -46,6 +50,7 @@ function openExample(url: string) {
 
 const waitingForControls = ref(false)
 
+let messageHandler: null | ((event: MessageEvent) => void) = null
 function openVisualsTab() {
   tab.value = window.open(visualTabUrl.value)
   tabOrigin = new URL(visualTabUrl.value).origin
@@ -54,7 +59,10 @@ function openVisualsTab() {
     return
   } else {
     waitingForControls.value = true
-    window.addEventListener('message', (event) => {
+    if(messageHandler) {
+      window.removeEventListener('message', messageHandler)
+    }
+    messageHandler = (event) => {
       if(tab.value && event.origin == tabOrigin) {
         const type = event.data.type
         if(type === Messages.AnnounceReceiver.type) {
@@ -66,7 +74,8 @@ function openVisualsTab() {
           tabClosed()
         }
       }
-    }) 
+    } 
+    window.addEventListener('message', messageHandler)
   }
 }
 
@@ -156,16 +165,22 @@ const examples = {
 
 <template>
   <div class='tab-opener' v-if="tab == null" >
-    <h1>av control</h1>
-    <p>
-      Open a new tab with a av-control receiving webapp
-    </p>
-    <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
-    <button @click="openVisualsTab">open</button>
-    <div class=examples>
-      <div v-for="(url, name) in examples" class=exwrap @click="openExample(url)">
-        <div class=example>
-          {{ name }}
+    <div>
+      <h1>av control</h1>
+      <p>
+        Open a new tab with a av-control receiving webapp
+      </p>
+      <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
+      <button @click="openVisualsTab">open</button>
+      <div class=examples >
+        <div v-for="(url, name) in examples" 
+          class=exwrap 
+          @click="openExample(url)" 
+          @keydown="confirmOnEnter($event, url)"
+          tabindex="0" >
+          <div class=example>
+            {{ name }}
+          </div>
         </div>
       </div>
     </div>
@@ -199,9 +214,16 @@ const examples = {
 </template>
 
 <style scoped>
+
 .tab-opener {
-  margin-top: 50vh;
-  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100%;
+}
+
+.tab-opener div {
   text-align: center;
   & p {
     margin: 0.5rem; 
@@ -259,9 +281,11 @@ button {
   white-space: nowrap;
   position: relative;
   display: inline-block;
-  transform-origin: 25% 50%;
+  transform-origin: 50% 50%;
   transform: rotate(90deg);
   pointer-events: none;
+  line-height: 2rem;
+  padding: 0 0.5rem;
 }
 
 .wait-screen {

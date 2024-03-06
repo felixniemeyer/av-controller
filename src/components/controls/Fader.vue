@@ -1,5 +1,5 @@
 <script setup lang=ts>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onUnmounted } from 'vue'
 import { Fader } from '@/controls'
 
 import MappingsIndicator from '../MappingsIndicator.vue'
@@ -56,30 +56,16 @@ let rect = null
 let touchId: null | number = null
 
 function touchstart(e: TouchEvent) {
-  e.preventDefault()
   const touch = e.changedTouches[0]
   const div = e.currentTarget as HTMLDivElement
   rect = div.getBoundingClientRect()
   touchId = touch.identifier
   updateValueY(touch.clientY)
-}
-
-
-let mousedown = false
-function onMousedown(e: MouseEvent) {
-  e.preventDefault()
-  const div = e.currentTarget as HTMLDivElement
-  rect = div.getBoundingClientRect()
-  mousedown = true
-  updateValueY(e.clientY)
-}
-
-function endMousedown(e: MouseEvent) {
-  mousedown = false
+  window.addEventListener('touchmove', touchmove)
+  window.addEventListener('touchend', endTouchDrag)
 }
 
 function touchmove(e: TouchEvent) {
-  e.preventDefault()
   if(touchId !== null) {
     for (const touch of e.changedTouches) {
       if (touch.identifier == touchId) {
@@ -89,11 +75,33 @@ function touchmove(e: TouchEvent) {
   }
 }
 
-function mousemove(e: MouseEvent) {
-  if(mousedown) {
-    updateValueY(e.clientY)
-  }
+function endTouchDrag() {
+  touchId = null
+  window.removeEventListener('touchmove', touchmove)
+  window.removeEventListener('touchend', endTouchDrag)
 }
+
+function onMousedown(e: MouseEvent) {
+  const div = e.currentTarget as HTMLDivElement
+  rect = div.getBoundingClientRect()
+  updateValueY(e.clientY)
+  window.addEventListener('mousemove', mousemove)
+  window.addEventListener('mouseup', endMousedown)
+}
+
+function mousemove(e: MouseEvent) {
+  updateValueY(e.clientY)
+}
+
+function endMousedown() {
+  window.removeEventListener('mousemove', mousemove)
+  window.removeEventListener('mouseup', endMousedown)
+}
+
+onBeforeUnmount(() => {
+  endMousedown()
+  endTouchDrag()
+})
 
 function updateValueY(touchY: number) : void  {
   const y = touchY - rect!.top
@@ -110,12 +118,7 @@ function updateValueY(touchY: number) : void  {
       class="basis slider-basis"
       :style=backgroundStyle
       @touchstart="touchstart"
-      @touchmove="touchmove"
-
       @mousedown="onMousedown"
-      @mouseleave="endMousedown"
-      @mouseup="endMousedown"
-      @mousemove="mousemove"
       >
       <div class="meter" :style=meterStyle>
       </div>
