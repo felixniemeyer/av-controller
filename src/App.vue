@@ -27,10 +27,6 @@ onMounted(() => {
   urlInputField.value?.focus()
 })
 
-function tabClosed () {
-  waitingForControls.value = true
-}
-
 function confirmOnEnter(e: KeyboardEvent, url?: string) {
   if(e.key === 'Enter' || e.key === ' ') {
     if(url) {
@@ -50,7 +46,6 @@ function openExample(url: string) {
 
 const waitingForControls = ref(false)
 
-let messageHandler: null | ((event: MessageEvent) => void) = null
 function openVisualsTab() {
   tab.value = window.open(visualTabUrl.value)
   tabOrigin = new URL(visualTabUrl.value).origin
@@ -58,11 +53,7 @@ function openVisualsTab() {
     console.error('could not open tab')
     return
   } else {
-    waitingForControls.value = true
-    if(messageHandler) {
-      window.removeEventListener('message', messageHandler)
-    }
-    messageHandler = (event) => {
+    const messageHandler = (event: MessageEvent) => {
       if(tab.value && event.origin == tabOrigin) {
         const type = event.data.type
         if(type === Messages.AnnounceReceiver.type) {
@@ -70,9 +61,7 @@ function openVisualsTab() {
           controlsLabel.value.spec.name = `controlling ${msg.name}`
           createControls(msg)
           waitingForControls.value = false
-        } else if(type === Messages.TabClosing.type) {
-          tabClosed()
-        }
+        } 
       }
     } 
     window.addEventListener('message', messageHandler)
