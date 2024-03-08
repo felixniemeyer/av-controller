@@ -1,5 +1,5 @@
 <script setup lang=ts>
-import { computed, onBeforeUnmount, onUnmounted } from 'vue'
+import { computed, onBeforeUnmount } from 'vue'
 import { Fader } from '@/controls'
 
 import MappingsIndicator from '../MappingsIndicator.vue'
@@ -39,7 +39,7 @@ const posize = computed(() => {
 const backgroundStyle = computed(() => {
   const color = props.fader.spec.color
   return {
-    backgroundColor: shade(0.35, color),
+    backgroundColor: shade(0.3, color),
     borderColor: color,
     boxShadow: `0 0 3rem -2rem ${color}`
   }
@@ -63,6 +63,7 @@ function touchstart(e: TouchEvent) {
   updateValueY(touch.clientY)
   window.addEventListener('touchmove', touchmove)
   window.addEventListener('touchend', endTouchDrag)
+  e.preventDefault()
 }
 
 function touchmove(e: TouchEvent) {
@@ -82,6 +83,7 @@ function endTouchDrag() {
 }
 
 function onMousedown(e: MouseEvent) {
+  e.preventDefault()
   const div = e.currentTarget as HTMLDivElement
   rect = div.getBoundingClientRect()
   updateValueY(e.clientY)

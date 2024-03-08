@@ -16,11 +16,11 @@ const props = defineProps({
 })
 
 const basisStyle = computed(() => {
-  const spec = props.selector.spec
+  const color = props.selector.spec.color
   return {
-    backgroundColor: spec.color, 
-    boxShadow: `0 0 2rem -0.5rem ${spec.color}`,
-    borderColor: spec.color,
+    backgroundColor: color, 
+    boxShadow: `0 0 2rem -0.5rem ${color}`,
+    borderColor: color,
   }
 })
 
@@ -35,7 +35,7 @@ const sliderStyle = computed(() => {
 })
 
 const selectedColor = computed(() => {
-  return shade(0.35, props.selector.spec.color)
+  return shade(0.3, props.selector.spec.color)
 })
 
 const optionColor = computed(() => {
@@ -88,6 +88,7 @@ function selectOption(e: TouchEvent | MouseEvent, index: number) {
   font-weight: bold;
   text-align: center;
   padding: 0.2rem; 
+  margin-top: -0.5rem;
   user-select: none;
 }
 
