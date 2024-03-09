@@ -7,13 +7,31 @@ import SwitchComponent from './components/controls/Switch.vue'
 import SelectorComponent from './components/controls/Selector.vue'
 import ConfirmButtonComponent from './components/controls/ConfirmButton.vue'
 import LabelComponent from './components/controls/Label.vue'
+import ConfirmSwitchComponent from './components/controls/ConfirmSwitch.vue'
+
+import CakeComponent from './components/meters/Cake.vue'
 
 import * as Controls from './controls'
+import * as Meters from './meters'
+
 import { useMappingsStore, type MidiSource } from './stores/mappings'
 
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
 
-import { Messages, Specs } from 'av-controls'
+import { 
+  Messages, 
+  PadSpec, 
+  FaderSpec,
+  SwitchSpec,
+  SelectorSpec,
+  ConfirmButtonSpec,
+  LabelSpec,
+  ConfirmSwitchSpec,
+  CakeSpec,
+  ControlSpec,
+  MeterSpec,
+} from 'av-controls'
+import type { Dict } from 'av-controls/src/dict'
 
 const mappingsStore = useMappingsStore()
 
@@ -45,6 +63,7 @@ function openExample(url: string) {
 }
 
 const waitingForControls = ref(false)
+let receiverId = ''
 
 function openVisualsTab() {
   tab.value = window.open(visualTabUrl.value)
@@ -59,51 +78,84 @@ function openVisualsTab() {
         if(type === Messages.AnnounceReceiver.type) {
           const msg = event.data as Messages.AnnounceReceiver
           controlsLabel.value.spec.name = `controlling ${msg.name}`
-          createControls(msg)
+          createControls(msg.controlSpecs)
+          createMeters(msg.meterSpecs)
+          receiverId = msg.receiverId
           waitingForControls.value = false
-        } 
+        } else if(type === Messages.MeterMessage.type) {
+          const msg = event.data as Messages.MeterMessage
+          if(msg.receiverId == receiverId) {
+            const meter = meters.value[msg.meterId]
+            if(meter) {
+              meter.update(msg.payload)
+            }
+          }
+        } else {
+          console.log('unknown message type', type)
+        }
       }
     } 
     window.addEventListener('message', messageHandler)
   }
 }
 
-const controls = ref([] as Controls.Control[])
-function createControls(msg: Messages.AnnounceReceiver) {
-  const results = []
-  for(let i = 0; i < msg.specs.length; i++) {
-    const spec = msg.specs[i]
+const controls = ref({} as Dict<Controls.Control>)
+function createControls(specs: Dict<ControlSpec>) {
+  let results: Dict<Controls.Control> = {}
+  for(let id in specs) {
+    const spec = specs[id]
     let control 
     if(spec.type === 'pad') {
-      control = new Controls.Pad(spec as Specs.PadSpec)
+      control = new Controls.Pad(spec as PadSpec)
     } else if(spec.type === 'fader') {
-      control = new Controls.Fader(spec as Specs.FaderSpec)
+      control = new Controls.Fader(spec as FaderSpec)
     } else if(spec.type === 'switch') {
-      control = new Controls.Switch(spec as Specs.SwitchSpec)
+      control = new Controls.Switch(spec as SwitchSpec)
     } else if(spec.type === 'selector') {
-      control = new Controls.Selector(spec as Specs.SelectorSpec)
+      control = new Controls.Selector(spec as SelectorSpec)
     } else if(spec.type === 'confirm-button') {
-      control = new Controls.ConfirmButton(spec as Specs.ConfirmButtonSpec)
+      control = new Controls.ConfirmButton(spec as ConfirmButtonSpec)
+    } else if(spec.type === 'confirm-switch') {
+      control = new Controls.ConfirmSwitch(spec as ConfirmSwitchSpec)
     } else if(spec.type === 'label') {
-      control = new Controls.Label(spec as Specs.LabelSpec)
+      control = new Controls.Label(spec as LabelSpec)
     } else {
       console.error('unknown control type', spec)
     }
     if(control) {
-      const index = i
+      const scopedId = id
       control.onUpdate = (payload) => {
-        sendUpdateToTab(index, payload)
+        sendUpdateToTab(scopedId, payload)
       }
       control.onTouch = mappingsStore.maybeMapTo
-      results[i] = control
+      results[id] = control
     }
   }
   controls.value = results
+  console.log(results)
+}
+
+const meters = ref({} as Dict<Meters.Meter>)
+function createMeters(specs: Dict<MeterSpec>) {
+  const results: Dict<Meters.Meter> = {}
+  for(let id in specs) {
+    const spec = specs[id]
+    let meter 
+    if(spec.type === 'cake') {
+      meter = new Meters.Cake(spec as CakeSpec)
+    } else {
+      console.error('unknown meter type', spec)
+    }
+    if(meter) {
+      results[id] = (meter)
+    }
+  }
+  meters.value = results
 }
 
 
 const exitButton = ref(new Controls.ConfirmButton(
-  new Specs.ConfirmButtonSpec('exit', 0, 0, 10, 100, '#c23')
+  new ConfirmButtonSpec('exit', 0, 0, 10, 100, '#c23')
 ))
 exitButton.value.onUpdate = (confirmed) => {
   if(confirmed) {
@@ -112,29 +164,29 @@ exitButton.value.onUpdate = (confirmed) => {
 }
 
 const controlsLabel = ref(new Controls.Label(
-  new Specs.LabelSpec('controls', 10, 0, 70, 100, '#555', 'center')
+  new LabelSpec('controls', 10, 0, 70, 100, '#555', 'center')
 ))
 
 const mapSwitch = ref(new Controls.Switch(
-  new Specs.SwitchSpec('map', 90, 0, 10, 100, '#2aa', false)
+  new SwitchSpec('map', 90, 0, 10, 100, '#2aa', false)
 ))
 mapSwitch.value.onUpdate = (isOn: boolean) => {
   showMidiSignals.value = isOn 
 }
 
 const rmMapButton = ref(new Controls.Switch (
-  new Specs.SwitchSpec('remove mapping', 80, 0, 10, 100, '#c23', false)
+  new SwitchSpec('remove mapping', 80, 0, 10, 100, '#c23', false)
 ))
 rmMapButton.value.onUpdate = (isOn: boolean) => {
   mappingsStore.removeMapping = isOn
   console.log('remove mapping', mappingsStore.removeMapping)
 }
 
-function sendUpdateToTab(controlIndex: number, payload: any) {
+function sendUpdateToTab(controlId: string, payload: any) {
   if(tab.value == null) {
     return
   } else {
-    const msg = new Messages.ControlMessage(controlIndex, payload)
+    const msg = new Messages.ControlMessage(controlId, payload)
     tab.value.postMessage(msg, '*')
   }
 }
@@ -190,13 +242,19 @@ const examples = {
           <button @click="tab = null">abort / go back</button>
         </div>
       </template>
-      <template v-else v-for="control, i in controls">
-        <PadComponent v-if="control.spec.type === 'pad'" :pad="control as Controls.Pad" :key="i"/>
-        <FaderComponent v-if="control.spec.type === 'fader'" :fader="control as Controls.Fader" :key="i"/>
-        <SwitchComponent v-if="control.spec.type === 'switch'" :switch="control as Controls.Switch" :key="i"/>
-        <SelectorComponent v-if="control.spec.type === 'selector'" :selector="control as Controls.Selector" :key="i"/>
-        <ConfirmButtonComponent v-if="control.spec.type === 'confirm-button'" :confirmButton="control as Controls.ConfirmButton" :key="i"/>
-        <LabelComponent v-if="control.spec.type === 'label'" :label="control as Controls.Label" :key="i"/>
+      <template v-else>
+        <template v-for="control, i in controls">
+          <PadComponent v-if="control.spec.type === 'pad'" :pad="control as Controls.Pad" :key="i"/>
+          <FaderComponent v-if="control.spec.type === 'fader'" :fader="control as Controls.Fader" :key="i"/>
+          <SwitchComponent v-if="control.spec.type === 'switch'" :switch="control as Controls.Switch" :key="i"/>
+          <SelectorComponent v-if="control.spec.type === 'selector'" :selector="control as Controls.Selector" :key="i"/>
+          <ConfirmButtonComponent v-if="control.spec.type === 'confirm-button'" :confirmButton="control as Controls.ConfirmButton" :key="i"/>
+          <LabelComponent v-if="control.spec.type === 'label'" :label="control as Controls.Label" :key="i"/>
+          <ConfirmSwitchComponent v-if="control.spec.type === 'confirm-switch'" :confirmSwitch="control as Controls.ConfirmSwitch" :key="i"/>
+        </template>
+        <template v-for="meter, i in meters">
+          <CakeComponent v-if="meter.spec.type === 'cake'" :cake="meter as Meters.Cake" :key="i"/>
+        </template>
       </template>
     </div>
   </div>

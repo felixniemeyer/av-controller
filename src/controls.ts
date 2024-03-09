@@ -1,12 +1,21 @@
 import { Mapping } from './stores/mappings'
 
-import { Specs } from 'av-controls'
+import { 
+  ControlSpec, 
+  FaderSpec,
+  PadSpec,
+  SwitchSpec,
+  SelectorSpec,
+  ConfirmSwitchSpec,
+  LabelSpec,
+  ConfirmButtonSpec,
+} from 'av-controls'
 
 type OnUpdateCallback = (payload: any) => void
 type OnTouchCallback = (c: Control) => void
 
 export abstract class Control {
-  public abstract spec: Specs.ControlSpec
+  public abstract spec: ControlSpec
 
   public onUpdate: OnUpdateCallback = () => {}
   public onTouch: OnTouchCallback = () => {}
@@ -28,20 +37,28 @@ export abstract class Control {
     this.mappings = []
     return mappings
   }
+
+  tabIndex() {
+    return 777 + this.spec.x * 101 + this.spec.y
+  }
 }
 
 export class Fader extends Control {
   value: number
 
   constructor(
-    public spec: Specs.FaderSpec,
+    public spec: FaderSpec,
 	) {
     super()
     this.value = spec.initialValue
   }
 
-  setValue(value: number) {
+  drag(value: number) {
     this.onTouch(this)
+    this.setValue(value)
+  }
+
+  setValue(value: number) {
     this.value = value
     this.onUpdate(value)
   }
@@ -49,6 +66,10 @@ export class Fader extends Control {
   setNormValue(normValue: number) {
     const mapped = normValue * (this.spec.max - this.spec.min) + this.spec.min
     this.setValue(mapped)
+  }
+
+  getNormValue() {
+    return (this.value - this.spec.min) / (this.spec.max - this.spec.min)
   }
 }
 
@@ -58,7 +79,7 @@ export class Pad extends Control {
   pressed: boolean = false
 
   constructor(
-    public spec: Specs.PadSpec,
+    public spec: PadSpec,
   ) {
     super()
   }
@@ -79,7 +100,7 @@ export class Switch extends Control {
   on: boolean
 
   constructor(
-    public spec: Specs.SwitchSpec,
+    public spec: SwitchSpec,
   ) {
     super()
     this.on = spec.initiallyOn
@@ -87,6 +108,10 @@ export class Switch extends Control {
 
   touchDown() {
     this.onTouch(this)
+    this.toggle() 
+  }
+
+  toggle() {
     this.on = !this.on
     this.onUpdate(this.on)
   }
@@ -96,7 +121,7 @@ export class Selector extends Control {
   index: number
 
   constructor(
-    public spec: Specs.SelectorSpec,
+    public spec: SelectorSpec,
   ) {
     super()
     this.index = spec.initialIndex
@@ -107,24 +132,74 @@ export class Selector extends Control {
     this.index = value
     this.onUpdate(value)
   }
+
+  increment() {
+    this.index = (this.index + 1) % this.spec.options.length
+  }
+
+  decrement() {
+    this.index = (this.index - 1 + this.spec.options.length) % this.spec.options.length
+  }
 }
 
 export class ConfirmButton extends Control {
   awaitingConfirmation: boolean = false
 
   constructor(
-    public spec: Specs.PadSpec,
+    public spec: ConfirmButtonSpec,
   ) {
     super()
   }
 
+  private defuseTimer? : number
   press() {
+    if(this.defuseTimer !== undefined) {
+      clearTimeout(this.defuseTimer)
+      this.defuseTimer = undefined
+    }
     if(this.awaitingConfirmation) {
       this.onUpdate(true)
       this.awaitingConfirmation = false
     } else {
       this.awaitingConfirmation = true
       this.onUpdate(false)
+      this.defuseTimer = setTimeout(() => {
+        this.awaitingConfirmation = false
+      }, 4000)
+    }
+  }
+
+  cancel() {
+    this.awaitingConfirmation = false
+  }
+}
+
+export class ConfirmSwitch extends Control {
+  awaitingConfirmation: boolean = false
+  on: boolean 
+
+  constructor(
+    public spec: ConfirmSwitchSpec,
+  ) {
+    super()
+    this.on = spec.initiallyOn
+  }
+
+  private defuseTimer? : number
+  press() {
+    if(this.defuseTimer !== undefined) {
+      clearTimeout(this.defuseTimer)
+      this.defuseTimer = undefined
+    }
+    if(this.awaitingConfirmation) {
+      this.awaitingConfirmation = false
+      this.on = !this.on
+      this.onUpdate(this.on)
+    } else {
+      this.awaitingConfirmation = true
+      this.defuseTimer = setTimeout(() => {
+        this.awaitingConfirmation = false
+      }, 4000)
     }
   }
 
@@ -135,8 +210,9 @@ export class ConfirmButton extends Control {
 
 export class Label extends Control {
   constructor(
-    public spec: Specs.LabelSpec,
+    public spec: LabelSpec,
   ) {
     super()
   }
 }
+

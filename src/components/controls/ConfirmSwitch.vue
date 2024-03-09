@@ -1,22 +1,21 @@
 <script setup lang=ts>
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref } from 'vue'
 
-// for color manipulation
-import { shade } from 'polished'
-import { Switch } from '@/controls'
+import { ConfirmSwitch } from '@/controls'
 
 import MappingsIndicator from '../MappingsIndicator.vue'
+import { shade } from 'polished';
 
 // vue
 const props = defineProps({
-  switch: {
-    type: Object as () => Switch,
+  confirmSwitch: {
+    type: Object as () => ConfirmSwitch,
     required: true,
   },
 })
 
 const posize = computed(() => {
-  const spec = props.switch.spec
+  const spec = props.confirmSwitch.spec
   return {
     width: `${spec.width}%`,
     height: `${spec.height}%`,
@@ -26,8 +25,8 @@ const posize = computed(() => {
 })
 
 const color = computed(() => {
-  const spec = props.switch.spec
-  if (props.switch.on) {
+  const spec = props.confirmSwitch.spec
+  if (props.confirmSwitch.on) {
     return shade(0.35, spec.color)
   } else {
     return spec.color
@@ -35,7 +34,7 @@ const color = computed(() => {
 })
 
 const basisStyle = computed(() => {
-  const spec = props.switch.spec
+  const spec = props.confirmSwitch.spec
   return {
     backgroundColor: color.value,
     boxShadow: `0 0 3rem -2rem ${spec.color}`,
@@ -43,34 +42,41 @@ const basisStyle = computed(() => {
   }
 })
 
-const control = ref(null) as Ref<HTMLDivElement | null>
 function press(e: Event) {
-  props.switch.touchDown()
+  props.confirmSwitch.press();
+  const target = e.currentTarget as HTMLDivElement
+  target.focus()
   e.preventDefault()
-  control.value!.focus()
 }
+
 
 </script>
 
 <template>
   <div class="control" :style=posize >
     <div
-      ref="control" :tabindex=props.switch.tabIndex()
-      class="basis" 
+      class="basis"
       :style=basisStyle
+      :tabindex="props.confirmSwitch.tabIndex()"
       @touchstart="press"
-      @click="press"
+      @mousedown="press"
       @keydown.enter="press"
       @keydown.space="press"
+      @blur="props.confirmSwitch.cancel"
       >
     </div>
     <div class="centered-label" >
-      {{ props.switch.spec.name }}
+      {{ props.confirmSwitch.awaitingConfirmation ? 'confirm' : props.confirmSwitch.spec.name }}
+      <span v-if="props.confirmSwitch.awaitingConfirmation">
+        turn {{ props.confirmSwitch.on ? 'off' : 'on' }}
+      </span>
+      
     </div>
-    <MappingsIndicator :mappings="props.switch.mappings"/>
+    <MappingsIndicator :mappings="props.confirmSwitch.mappings"/>
   </div>
 </template>
 
 <style scoped>
 @import './control-styles.css';
+
 </style>

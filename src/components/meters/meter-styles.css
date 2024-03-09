@@ -1,0 +1,6 @@
+@import '../controls/control-styles.css';
+
+.meter{
+  position: absolute;
+  user-select: none;
+}

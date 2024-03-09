@@ -1,5 +1,5 @@
 <script setup lang=ts>
-import { computed, onBeforeUnmount } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { Fader } from '@/controls'
 
 import MappingsIndicator from '../MappingsIndicator.vue'
@@ -55,6 +55,8 @@ const meterStyle = computed(() => {
 let rect = null
 let touchId: null | number = null
 
+const control = ref<HTMLDivElement | null>(null)
+
 function touchstart(e: TouchEvent) {
   const touch = e.changedTouches[0]
   const div = e.currentTarget as HTMLDivElement
@@ -64,6 +66,7 @@ function touchstart(e: TouchEvent) {
   window.addEventListener('touchmove', touchmove)
   window.addEventListener('touchend', endTouchDrag)
   e.preventDefault()
+  control.value!.focus()
 }
 
 function touchmove(e: TouchEvent) {
@@ -83,12 +86,12 @@ function endTouchDrag() {
 }
 
 function onMousedown(e: MouseEvent) {
-  e.preventDefault()
   const div = e.currentTarget as HTMLDivElement
   rect = div.getBoundingClientRect()
   updateValueY(e.clientY)
   window.addEventListener('mousemove', mousemove)
   window.addEventListener('mouseup', endMousedown)
+  control.value!.focus()
 }
 
 function mousemove(e: MouseEvent) {
@@ -112,15 +115,28 @@ function updateValueY(touchY: number) : void  {
   props.fader.setNormValue(clamped)
 }
 
+function keyPress(e: KeyboardEvent) {
+  let v = props.fader.getNormValue()
+  if (e.key === 'ArrowUp' || e.key === 'k') {
+    v -= 0.05
+  } else if (e.key === 'ArrowDown' || e.key === 'j') {
+    v += 0.05
+  }
+  const clamped = Math.max(0, Math.min(1, v))
+  props.fader.setNormValue(clamped)
+}
+
 </script>
 
 <template>
   <div class="control" :style=posize >
     <div
-      class="basis slider-basis"
+      ref="control" :tabindex="props.fader.tabIndex()"
+      class="basis fader-basis"
       :style=backgroundStyle
       @touchstart="touchstart"
       @mousedown="onMousedown"
+      @keydown="keyPress"
       >
       <div class="meter" :style=meterStyle>
       </div>
@@ -138,16 +154,9 @@ function updateValueY(touchY: number) : void  {
 <style scoped>
 @import './control-styles.css';
 
-.slider-basis{
-  position: absolute;
-  width: calc(100% - 1rem);
-  height: calc(100% - 1rem);
-  margin: 0.5rem;
+.fader-basis{
   border: none; 
-  border-radius: 0.5rem;
   border-left: 0.5rem solid #000;
-  overflow: hidden;
-  cursor: pointer;
 }
 
 .meter {
@@ -155,6 +164,7 @@ function updateValueY(touchY: number) : void  {
   width: 100%;
   pointer-events: none;
   border-bottom-right-radius: 0.5rem;
+  user-select: none;
 }
 
 </style>

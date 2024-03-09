@@ -1,5 +1,5 @@
 <script setup lang=ts>
-import { computed } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
 // for color manipulation
 import { lighten, shade } from 'polished'
@@ -24,7 +24,7 @@ const basisStyle = computed(() => {
   }
 })
 
-const sliderStyle = computed(() => {
+const posize = computed(() => {
   const spec = props.selector.spec
   return {
     width: `${spec.width}%`,
@@ -42,16 +42,32 @@ const optionColor = computed(() => {
   return lighten(0.1, props.selector.spec.color)
 })
 
+const control = ref(null) as Ref<HTMLDivElement | null>
 function selectOption(e: TouchEvent | MouseEvent, index: number) {
   props.selector.select(index)
   e.preventDefault()
+  control.value!.focus()
+}
+
+function keyPress(e: KeyboardEvent) {
+  if (e.key === 'ArrowUp' || e.key === 'k') {
+   props.selector.decrement()
+  } else if (e.key === 'ArrowDown' || e.key === 'j') {
+    props.selector.increment()
+  }
 }
 
 </script>
 
 <template>
-  <div class="control" :style=sliderStyle >
+  <div 
+    class="control" 
+    :style=posize 
+    @keydown="keyPress"
+    >
     <div
+      :tabindex=props.selector.tabIndex()
+      ref="control"
       class="basis selector"
       :style=basisStyle
       >
@@ -82,6 +98,7 @@ function selectOption(e: TouchEvent | MouseEvent, index: number) {
 .selector {
   display: flex;
   flex-direction: column;
+  user-select: none;
 }
 
 .selector-label {
@@ -96,6 +113,7 @@ function selectOption(e: TouchEvent | MouseEvent, index: number) {
   flex: 1; 
   display: flex;
   flex-direction: column;
+  user-select: none;
 }
 
 .option {
@@ -104,5 +122,6 @@ function selectOption(e: TouchEvent | MouseEvent, index: number) {
   padding: 0.2rem; 
   border-radius: 0.5rem;
   text-align: center;
+  user-select: none;
 }
 </style>

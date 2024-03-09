@@ -33,12 +33,10 @@ const basisStyle = computed(() => {
   }
 })
 
-function press(e: TouchEvent | MouseEvent) {
+function press(e: Event) {
   props.confirmButton.press();
-  const target = e.target
-  if(target instanceof HTMLElement) {
-    target.focus()
-  }
+  const target = e.currentTarget as HTMLDivElement
+  target.focus()
   e.preventDefault()
 }
 
@@ -50,9 +48,11 @@ function press(e: TouchEvent | MouseEvent) {
     <div
       class="basis"
       :style=basisStyle
-      tabindex="0"
+      :tabindex="props.confirmButton.tabIndex()"
       @touchstart="press"
       @mousedown="press"
+      @keydown.enter="press"
+      @keydown.space="press"
       @blur="props.confirmButton.cancel"
       >
     </div>

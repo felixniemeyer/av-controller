@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 
 // for color manipulation
-import { shade } from 'polished'
 import { Label } from '@/controls'
 
 import MappingsIndicator from '../MappingsIndicator.vue'

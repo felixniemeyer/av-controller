@@ -43,9 +43,9 @@ const basisStyle = computed(() => {
   }
 })
 
-function touchstart(e: TouchEvent | MouseEvent) {
-  props.pad.press(1)
-  e.preventDefault()
+function touchstart(e: Event) {
+  props.pad.press(1);
+  (e.currentTarget as HTMLDivElement).focus()
 }
 
 function touchend() {
@@ -59,8 +59,12 @@ function touchend() {
     <div
       class="basis"
       :style=basisStyle
+      :tabindex="props.pad.tabIndex()"
       @touchstart="touchstart"
       @mousedown="touchstart"
+      @keydown.enter="touchstart"
+      @keydown.space="touchstart"
+      @keup="touchend"
       @touchend="touchend"
       @mouseup="touchend"
       >
