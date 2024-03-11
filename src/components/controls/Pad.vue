@@ -15,16 +15,6 @@ const props = defineProps({
   },
 })
 
-const posize = computed(() => {
-  const spec = props.pad.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const color = computed(() => {
   const spec = props.pad.spec
   if (props.pad.pressed) {
@@ -55,25 +45,23 @@ function touchend() {
 </script>
 
 <template>
-  <div class="control" :style=posize >
-    <div
-      class="basis"
-      :style=basisStyle
-      :tabindex="props.pad.tabIndex()"
-      @touchstart="touchstart"
-      @mousedown="touchstart"
-      @keydown.enter="touchstart"
-      @keydown.space="touchstart"
-      @keup="touchend"
-      @touchend="touchend"
-      @mouseup="touchend"
-      >
-    </div>
-    <div class="centered-label" >
-      {{ props.pad.spec.name }}
-    </div>
-    <MappingsIndicator :mappings="props.pad.mappings"/>
+  <div
+    class="basis"
+    :style=basisStyle
+    :tabindex="props.pad.tabIndex()"
+    @touchstart="touchstart"
+    @mousedown="touchstart"
+    @keydown.enter="touchstart"
+    @keydown.space="touchstart"
+    @keup="touchend"
+    @touchend="touchend"
+    @mouseup="touchend"
+    >
   </div>
+  <div class="centered-label" >
+    {{ props.pad.spec.name }}
+  </div>
+  <MappingsIndicator :mappings="props.pad.mappings"/>
 </template>
 
 <style scoped>

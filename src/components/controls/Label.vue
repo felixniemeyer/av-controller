@@ -14,16 +14,6 @@ const props = defineProps({
   },
 })
 
-const posize = computed(() => {
-  const spec = props.label.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const basisStyle = computed(() => {
   const spec = props.label.spec
   return {
@@ -41,13 +31,11 @@ const labelClass = {
 </script>
 
 <template>
-  <div class="control" :style=posize >
-    <div class=basis :style=basisStyle></div>
-    <div :class="labelClass[props.label.spec.labelPosition]">
-      {{ props.label.spec.name}}
-    </div>
-    <MappingsIndicator :mappings="props.label.mappings"/>
+  <div class=basis :style=basisStyle></div>
+  <div :class="labelClass[props.label.spec.labelPosition]">
+    {{ props.label.spec.name}}
   </div>
+  <MappingsIndicator :mappings="props.label.mappings"/>
 </template>
 
 <style scoped>

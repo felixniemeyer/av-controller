@@ -2,6 +2,7 @@ import { Mapping } from './stores/mappings'
 
 import { 
   ControlSpec, 
+  GroupSpec, 
   FaderSpec,
   PadSpec,
   SwitchSpec,
@@ -9,6 +10,7 @@ import {
   ConfirmSwitchSpec,
   LabelSpec,
   ConfirmButtonSpec,
+  CakeSpec,
 } from 'av-controls'
 
 type OnUpdateCallback = (payload: any) => void
@@ -40,6 +42,19 @@ export abstract class Control {
 
   tabIndex() {
     return 777 + this.spec.x * 101 + this.spec.y
+  }
+
+  update(_payload: any) {
+    // implement for meters
+  }
+}
+export type ControlsDict = {[id: string]: Control}
+
+export class Group extends Control {
+  constructor(
+    public spec: GroupSpec,
+  ) {
+    super()
   }
 }
 
@@ -213,6 +228,23 @@ export class Label extends Control {
     public spec: LabelSpec,
   ) {
     super()
+  }
+}
+
+export class Cake extends Control {
+  value: number
+
+  constructor(
+    public spec: CakeSpec,
+	) {
+    super()
+    this.value = spec.initialValue
+  }
+
+  update(payload: number) {
+    if(typeof payload === 'number') {
+      this.value = payload
+    }
   }
 }
 

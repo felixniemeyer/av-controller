@@ -14,16 +14,6 @@ const props = defineProps({
   },
 })
 
-const posize = computed(() => {
-  const spec = props.confirmSwitch.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const color = computed(() => {
   const spec = props.confirmSwitch.spec
   if (props.confirmSwitch.on) {
@@ -53,27 +43,25 @@ function press(e: Event) {
 </script>
 
 <template>
-  <div class="control" :style=posize >
-    <div
-      class="basis"
-      :style=basisStyle
-      :tabindex="props.confirmSwitch.tabIndex()"
-      @touchstart="press"
-      @mousedown="press"
-      @keydown.enter="press"
-      @keydown.space="press"
-      @blur="props.confirmSwitch.cancel"
-      >
-    </div>
-    <div class="centered-label" >
-      {{ props.confirmSwitch.awaitingConfirmation ? 'confirm' : props.confirmSwitch.spec.name }}
-      <span v-if="props.confirmSwitch.awaitingConfirmation">
-        turn {{ props.confirmSwitch.on ? 'off' : 'on' }}
-      </span>
-      
-    </div>
-    <MappingsIndicator :mappings="props.confirmSwitch.mappings"/>
+  <div
+    class="basis"
+    :style=basisStyle
+    :tabindex="props.confirmSwitch.tabIndex()"
+    @touchstart="press"
+    @mousedown="press"
+    @keydown.enter="press"
+    @keydown.space="press"
+    @blur="props.confirmSwitch.cancel"
+    >
   </div>
+  <div class="centered-label" >
+    {{ props.confirmSwitch.awaitingConfirmation ? 'confirm' : props.confirmSwitch.spec.name }}
+    <span v-if="props.confirmSwitch.awaitingConfirmation">
+      turn {{ props.confirmSwitch.on ? 'off' : 'on' }}
+    </span>
+    
+  </div>
+  <MappingsIndicator :mappings="props.confirmSwitch.mappings"/>
 </template>
 
 <style scoped>

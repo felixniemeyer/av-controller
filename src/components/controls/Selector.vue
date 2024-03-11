@@ -24,16 +24,6 @@ const basisStyle = computed(() => {
   }
 })
 
-const posize = computed(() => {
-  const spec = props.selector.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const selectedColor = computed(() => {
   return shade(0.3, props.selector.spec.color)
 })
@@ -60,37 +50,32 @@ function keyPress(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div 
-    class="control" 
-    :style=posize 
+  <div
+    :tabindex=props.selector.tabIndex()
     @keydown="keyPress"
-    >
-    <div
-      :tabindex=props.selector.tabIndex()
-      ref="control"
-      class="basis selector"
-      :style=basisStyle
-      >
-      <div class="selector-label" >
-        {{ props.selector.spec.name }}
-      </div>
-      <div class=options>
-        <div
-          v-for="(option, index) in props.selector.spec.options"
-          :key="index"
-          @touchstart="selectOption($event, index)"
-          @mousedown="selectOption($event, index)"
-          class="option"
-          :style="{backgroundColor: index === props.selector.index ? selectedColor : optionColor}"
-          >
-          <div class="centered-label" >
-            {{ option }}
-          </div>
+    ref="control"
+    class="basis selector" 
+    :style=basisStyle
+    ><!-- and class control? -->
+    <div class="selector-label" >
+      {{ props.selector.spec.name }}
+    </div>
+    <div class=options>
+      <div
+        v-for="(option, index) in props.selector.spec.options"
+        :key="index"
+        @touchstart="selectOption($event, index)"
+        @mousedown="selectOption($event, index)"
+        class="option"
+        :style="{backgroundColor: index === props.selector.index ? selectedColor : optionColor}"
+        >
+        <div class="centered-label" >
+          {{ option }}
         </div>
       </div>
     </div>
-    <MappingsIndicator :mappings="props.selector.mappings"/>
   </div>
+  <MappingsIndicator :mappings="props.selector.mappings"/>
 </template>
 
 <style scoped>

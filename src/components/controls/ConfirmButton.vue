@@ -13,16 +13,6 @@ const props = defineProps({
   },
 })
 
-const posize = computed(() => {
-  const spec = props.confirmButton.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const basisStyle = computed(() => {
   const confirmButton = props.confirmButton
   const spec = confirmButton.spec
@@ -44,23 +34,21 @@ function press(e: Event) {
 </script>
 
 <template>
-  <div class="control" :style=posize >
-    <div
-      class="basis"
-      :style=basisStyle
-      :tabindex="props.confirmButton.tabIndex()"
-      @touchstart="press"
-      @mousedown="press"
-      @keydown.enter="press"
-      @keydown.space="press"
-      @blur="props.confirmButton.cancel"
-      >
-    </div>
-    <div class="centered-label" >
-      {{ props.confirmButton.awaitingConfirmation ? 'confirm' : props.confirmButton.spec.name }}
-    </div>
-    <MappingsIndicator :mappings="props.confirmButton.mappings"/>
+  <div
+    class="basis"
+    :style=basisStyle
+    :tabindex="props.confirmButton.tabIndex()"
+    @touchstart="press"
+    @mousedown="press"
+    @keydown.enter="press"
+    @keydown.space="press"
+    @blur="props.confirmButton.cancel"
+    >
   </div>
+  <div class="centered-label" >
+    {{ props.confirmButton.awaitingConfirmation ? 'confirm' : props.confirmButton.spec.name }}
+  </div>
+  <MappingsIndicator :mappings="props.confirmButton.mappings"/>
 </template>
 
 <style scoped>

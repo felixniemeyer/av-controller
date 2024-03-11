@@ -15,16 +15,6 @@ const props = defineProps({
   },
 })
 
-const posize = computed(() => {
-  const spec = props.switch.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const color = computed(() => {
   const spec = props.switch.spec
   if (props.switch.on) {
@@ -53,22 +43,20 @@ function press(e: Event) {
 </script>
 
 <template>
-  <div class="control" :style=posize >
-    <div
-      ref="control" :tabindex=props.switch.tabIndex()
-      class="basis" 
-      :style=basisStyle
-      @touchstart="press"
-      @click="press"
-      @keydown.enter="press"
-      @keydown.space="press"
-      >
-    </div>
-    <div class="centered-label" >
-      {{ props.switch.spec.name }}
-    </div>
-    <MappingsIndicator :mappings="props.switch.mappings"/>
+  <div
+    ref="control" :tabindex=props.switch.tabIndex()
+    class="basis" 
+    :style=basisStyle
+    @touchstart="press"
+    @click="press"
+    @keydown.enter="press"
+    @keydown.space="press"
+    >
   </div>
+  <div class="centered-label" >
+    {{ props.switch.spec.name }}
+  </div>
+  <MappingsIndicator :mappings="props.switch.mappings"/>
 </template>
 
 <style scoped>

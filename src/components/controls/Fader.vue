@@ -26,16 +26,6 @@ const normalizedValue = computed(() => {
   return (currentValue.value - spec.min) / (spec.max - spec.min)
 })
 
-const posize = computed(() => {
-  const spec = props.fader.spec
-  return {
-    width: `${spec.width}%`,
-    height: `${spec.height}%`,
-    top: `${spec.y}%`,
-    left: `${spec.x}%`,
-  }
-})
-
 const backgroundStyle = computed(() => {
   const color = props.fader.spec.color
   return {
@@ -130,25 +120,23 @@ function keyPress(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="control" :style=posize >
-    <div
-      ref="control" :tabindex="props.fader.tabIndex()"
-      class="basis fader-basis"
-      :style=backgroundStyle
-      @touchstart="touchstart"
-      @mousedown="onMousedown"
-      @keydown="keyPress"
-      >
-      <div class="meter" :style=meterStyle>
-      </div>
+  <div
+    ref="control" :tabindex="props.fader.tabIndex()"
+    class="basis fader-basis"
+    :style=backgroundStyle
+    @touchstart="touchstart"
+    @mousedown="onMousedown"
+    @keydown="keyPress"
+    >
+    <div class="meter" :style=meterStyle>
     </div>
-    <MappingsIndicator :mappings="props.fader.mappings"/>
-    <div class="label-top">
-      {{ formattedValue }}
-    </div>
-    <div class="label-bottom">
-      {{ props.fader.spec.name }}
-    </div>
+  </div>
+  <MappingsIndicator :mappings="props.fader.mappings"/>
+  <div class="label-top">
+    {{ formattedValue }}
+  </div>
+  <div class="label-bottom">
+    {{ props.fader.spec.name }}
   </div>
 </template>
 
