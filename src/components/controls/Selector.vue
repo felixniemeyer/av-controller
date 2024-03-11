@@ -4,6 +4,7 @@ import { computed, ref, type Ref } from 'vue'
 // for color manipulation
 import { lighten, shade } from 'polished'
 import { Selector } from '@/controls'
+import { makeBasisStyle } from './common'
 
 import MappingsIndicator from '../MappingsIndicator.vue'
 
@@ -15,14 +16,7 @@ const props = defineProps({
   },
 })
 
-const basisStyle = computed(() => {
-  const color = props.selector.spec.color
-  return {
-    backgroundColor: color, 
-    boxShadow: `0 0 2rem -0.5rem ${color}`,
-    borderColor: color,
-  }
-})
+const basisStyle = makeBasisStyle(props.selector.spec)
 
 const selectedColor = computed(() => {
   return shade(0.3, props.selector.spec.color)
@@ -83,7 +77,6 @@ function keyPress(e: KeyboardEvent) {
 .selector {
   display: flex;
   flex-direction: column;
-  user-select: none;
 }
 
 .selector-label {

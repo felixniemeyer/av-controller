@@ -1,8 +1,8 @@
+import type { ControlId } from 'av-controls/src/messages'
 import { Mapping } from './stores/mappings'
 
 import { 
   ControlSpec, 
-  GroupSpec, 
   FaderSpec,
   PadSpec,
   SwitchSpec,
@@ -11,6 +11,8 @@ import {
   LabelSpec,
   ConfirmButtonSpec,
   CakeSpec,
+  GroupSpecWithoutControls,
+  GroupSpec,
 } from 'av-controls'
 
 type OnUpdateCallback = (payload: any) => void
@@ -44,7 +46,7 @@ export abstract class Control {
     return 777 + this.spec.x * 101 + this.spec.y
   }
 
-  update(_payload: any) {
+  update(_payload: any, _id: ControlId = []) {
     // implement for meters
   }
 }
@@ -53,8 +55,20 @@ export type ControlsDict = {[id: string]: Control}
 export class Group extends Control {
   constructor(
     public spec: GroupSpec,
+    public controls: ControlsDict,
   ) {
     super()
+  }
+
+  update(payload: any, id: ControlId) {
+    if(id.length > 1) {
+      const group = this.controls[id[0]] as Group
+      group.update(payload, id.slice(1))
+    } else if (id.length === 1){
+      this.controls[id[0]].update(payload)
+    } else {
+      // updates are for the group itself
+    }
   }
 }
 

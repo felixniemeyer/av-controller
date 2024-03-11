@@ -1,11 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-import ControlComponent from './components/Control.vue'
+import { 
+  Messages, 
+  PadSpec, 
+  FaderSpec,
+  SwitchSpec,
+  SelectorSpec,
+  ConfirmButtonSpec,
+  LabelSpec,
+  ConfirmSwitchSpec,
+  CakeSpec,
+  GroupSpec,
+type ControlSpecsDict,
+} from 'av-controls'
 
 import {
   type ControlsDict, 
-  Control, 
   Group,
   Fader,
   Pad,
@@ -19,22 +30,10 @@ import {
 
 import { useMappingsStore, type MidiSource } from './stores/mappings'
 
-import MIDISignalLogger from './components/MIDISignalLogger.vue'
-
-import { 
-  Messages, 
-  PadSpec, 
-  FaderSpec,
-  SwitchSpec,
-  SelectorSpec,
-  ConfirmButtonSpec,
-  LabelSpec,
-  ConfirmSwitchSpec,
-  CakeSpec,
-  ControlSpec,
-} from 'av-controls'
-
 import type { ControlId } from 'av-controls/src/messages'
+import MIDISignalLogger from './components/MIDISignalLogger.vue'
+import ControlComponent from './components/controls/Control.vue'
+
 
 const mappingsStore = useMappingsStore()
 
@@ -65,7 +64,7 @@ function openExample(url: string) {
   openVisualsTab()
 }
 
-const waitingForControls = ref(false)
+const page = ref<Group>()
 let receiverId = ''
 
 function openVisualsTab() {
@@ -79,17 +78,19 @@ function openVisualsTab() {
       if(tab.value && event.origin == tabOrigin) {
         const type = event.data.type
         if(type === Messages.AnnounceReceiver.type) {
-          const msg = event.data as Messages.AnnounceReceiver
-          controlsLabel.value.spec.name = `controlling ${msg.name}`
-          createControls(msg.controlSpecs)
-          receiverId = msg.receiverId
-          waitingForControls.value = false
+          const announcement = event.data as Messages.AnnounceReceiver
+          controlsLabel.value.spec.name = `controlling ${announcement.name}`
+          const controls = createControls(announcement.controlSpecs)
+          page.value = new Group(
+            new GroupSpec('1', 0, 0, 100, 100, '#000', announcement.controlSpecs, 'page'), 
+            controls
+          )
+          receiverId = announcement.receiverId
         } else if(type === Messages.MeterMessage.type) {
           const msg = event.data as Messages.MeterMessage
           if(msg.receiverId == receiverId) {
-            const control = getControl(controls.value, msg.controlId)
-            if(control) {
-              control.update(msg.payload)
+            if(page.value) {
+              page.value.update(msg.payload, msg.controlId)
             }
           }
         } else {
@@ -101,18 +102,8 @@ function openVisualsTab() {
   }
 }
 
-function getControl(controls: ControlsDict, controlId: ControlId) {
-  if(controlId.length > 1) {
-    const group: Group = controlId[0]
-    return getControl(group.controls, controlId.slice(1))
-  } else {
-    return controls[controlId]
-  }
-}
-
-const controls = ref<ControlsDict>({})
-function createControls(specs: Dict<ControlSpec>) {
-  let results: ControlsDict = {}
+function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
+  let controls: ControlsDict = {}
   for(let id in specs) {
     const spec = specs[id]
     let control 
@@ -132,20 +123,22 @@ function createControls(specs: Dict<ControlSpec>) {
       control = new Label(spec as LabelSpec)
     } else if(spec.type === 'cake') {
       control = new Cake(spec as CakeSpec)
+    } else if(spec.type === 'group') {
+      const groupSpec = spec as GroupSpec
+      control = new Group(groupSpec, createControls(groupSpec.controlSpecs, idPath.concat(id)))
     } else {
       console.error('unknown control type', spec)
     }
     if(control) {
-      const scopedId = id
+      const scopedId = idPath.concat(id)
       control.onUpdate = (payload) => {
-        sendUpdateToTab(scopedId, payload)
+        sendUpdateToTab(payload, scopedId)
       }
       control.onTouch = mappingsStore.maybeMapTo
-      results[id] = control
+      controls[id] = control
     }
   }
-  controls.value = results
-  console.log(results)
+  return controls
 }
 
 const exitButton = ref(new ConfirmButton(
@@ -176,7 +169,7 @@ rmMapButton.value.onUpdate = (isOn: boolean) => {
   console.log('remove mapping', mappingsStore.removeMapping)
 }
 
-function sendUpdateToTab(controlId: string, payload: any) {
+function sendUpdateToTab(payload: any, controlId: ControlId) {
   if(tab.value == null) {
     return
   } else {
@@ -232,15 +225,11 @@ const examples = {
     </div>
     <MIDISignalLogger v-if="showMidiSignals" @select="mapMIDIActivity"/>
     <div v-else class="control-area">
-      <template v-if="waitingForControls">
-        <div class='wait-screen'>
-          <p>Waiting for controls...</p>
-          <button @click="tab = null">abort / go back</button>
-        </div>
-      </template>
-      <template v-else v-for="control, i in controls" :key="i">
-        <ControlComponent :control="control"/>
-      </template>
+      <div v-if="page === undefined" class='wait-screen'>
+        <p>Waiting for controls...</p>
+        <button @click="tab = null">abort / go back</button>
+      </div>
+      <ControlComponent v-else :control="page"/> 
     </div>
   </div>
 </template>
@@ -285,10 +274,10 @@ button {
 
 .control-area {
   position: absolute;
-  top: 5rem;
-  left: 0.5rem;
-  height: calc(100% - 5.5rem);
-  width: calc(100% - 1rem);
+  top: 4.5rem;
+  left: 0;
+  height: calc(100% - 4.5rem);
+  width: calc(100%);
   box-sizing: border-box;
 }
 

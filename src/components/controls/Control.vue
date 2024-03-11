@@ -13,16 +13,17 @@ import {
   Cake,
 } from '@/controls'
 
-import FaderComponent from './controls/Fader.vue'
-import PadComponent from './controls/Pad.vue'
-import SwitchComponent from './controls/Switch.vue'
-import SelectorComponent from './controls/Selector.vue'
-import ConfirmButtonComponent from './controls/ConfirmButton.vue'
-import LabelComponent from './controls/Label.vue'
-import ConfirmSwitchComponent from './controls/ConfirmSwitch.vue'
-import CakeComponent from './controls/Cake.vue'
+import GroupComponent from './Group.vue'
+import FaderComponent from './Fader.vue'
+import PadComponent from './Pad.vue'
+import SwitchComponent from './Switch.vue'
+import SelectorComponent from './Selector.vue'
+import ConfirmButtonComponent from './ConfirmButton.vue'
+import LabelComponent from './Label.vue'
+import ConfirmSwitchComponent from './ConfirmSwitch.vue'
+import CakeComponent from './Cake.vue'
 
-import type { Control } from '@/controls'
+import type { Control, Group } from '@/controls'
 
 const props = defineProps({
   control: {
@@ -45,7 +46,8 @@ const posize = computed(() => {
 </script>
 
 <template>
-  <div class="control" :style=posize >
+  <div class="control" :style="posize">
+    <GroupComponent v-if="type === 'group'" :group="control as Group"/>
     <PadComponent v-if="type === 'pad'" :pad="control as Pad"/>
     <FaderComponent v-if="type === 'fader'" :fader="control as Fader"/>
     <SwitchComponent v-if="type === 'switch'" :switch="control as Switch"/>
@@ -58,5 +60,8 @@ const posize = computed(() => {
 </template>
 
 <style scoped>
-@import './controls/control-styles.css';
+.control {
+  position: absolute;
+  user-select: none;
+}
 </style>
