@@ -164,6 +164,14 @@ function laneHeight(i: number) {
 </script>
 
 <template>
+  <div class="panel">
+    <h3>Supported Mappings</h3>
+    <ul>
+      <li>key/pad -> Button</li>
+      <li>fader/poti -> Fader</li>
+      <li>more to come...</li>
+    </ul>
+  </div>
   <svg class=canvas ref=canvas width="100%" :height="lineHeight * (lines + (selected !== null ? 1 : 0))">
     <rect v-for="record, id, i in recordsStore" :key="id" class='lane-background' :class='{selected: i==selected}' :y="laneY(i, 0)" :width="width" :height="laneHeight(i)" @click="tap(record, String(id), i)" />
     <g v-for="control, id, i in recordsStore" :key="id">

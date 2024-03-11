@@ -52,4 +52,11 @@ const labelClass = {
 
 <style scoped>
 @import './control-styles.css';
+.label-top {
+  margin-top: 1rem;
+}
+.label-bottom {
+  margin-bottom: 1rem;
+}
+
 </style>

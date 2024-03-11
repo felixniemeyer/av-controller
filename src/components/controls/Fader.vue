@@ -48,6 +48,7 @@ const backgroundStyle = computed(() => {
 const meterStyle = computed(() => {
   return {
     height: `${(normalizedValue.value ?? 0.5) * 100}%`,
+    bottom: 0, 
     backgroundColor: props.fader.spec.color
   }
 })
@@ -109,7 +110,7 @@ onBeforeUnmount(() => {
 })
 
 function updateValueY(touchY: number) : void  {
-  const y = touchY - rect!.top
+  const y = rect!.bottom- touchY 
   const v = y / rect!.height
   const clamped = Math.max(0, Math.min(1, v))
   props.fader.setNormValue(clamped)
@@ -143,10 +144,10 @@ function keyPress(e: KeyboardEvent) {
     </div>
     <MappingsIndicator :mappings="props.fader.mappings"/>
     <div class="label-top">
-      {{ props.fader.spec.name }}
+      {{ formattedValue }}
     </div>
     <div class="label-bottom">
-      {{ formattedValue }}
+      {{ props.fader.spec.name }}
     </div>
   </div>
 </template>
