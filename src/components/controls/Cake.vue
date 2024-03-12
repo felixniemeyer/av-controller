@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 
 // for color manipulation
-import { opacify, shade, transparentize } from 'polished'
-import { Cake } from '@/meters'
+import { shade, transparentize } from 'polished'
+import { Cake } from '@/controls'
 
 // vue
 const props = defineProps({

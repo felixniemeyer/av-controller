@@ -93,6 +93,8 @@ function openVisualsTab() {
               page.value.update(msg.payload, msg.controlId)
             }
           }
+        } else if(type === Messages.TabClosing.type) {
+          console.log('tab closed')
         } else {
           console.log('unknown message type', type)
         }
