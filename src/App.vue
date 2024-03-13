@@ -96,7 +96,7 @@ function openVisualsTab() {
         } else if(type === Messages.TabClosing.type) {
           console.log('tab closed')
         } else {
-          console.log('unknown message type', type)
+          console.log('unknown message type in message', event.data)
         }
       }
     } 
@@ -187,8 +187,11 @@ function mapMIDIActivity(midiSource: MidiSource) {
   mappingsStore.midiSourceForMapping = midiSource
 }
 
-const examples = {
-  'music-box': import.meta.env.DEV ? 'http://localhost:5173' :  'https://gfx.aimparency.org/music-box-song/'
+const examples = import.meta.env.DEV ? {
+  'localhost:5173': 'http://localhost:5173',
+} : {
+  'aortic rupture': 'https://gfx.aimparency.org/rupture/',
+  'music-box': 'https://gfx.aimparency.org/music-box-song/'
 }
 
 </script>

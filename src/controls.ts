@@ -102,7 +102,7 @@ export class Fader extends Control {
   }
 }
 
-type KeyEvent = {press: true, value: number} | {press: false}
+type PadEvent = {press: true, velocity: number} | {press: false}
 
 export class Pad extends Control {
   pressed: boolean = false
@@ -116,12 +116,12 @@ export class Pad extends Control {
   press(v: number) {
     this.onTouch(this)
     this.pressed = true
-    this.onUpdate({press: true, value: v} as KeyEvent)
+    this.onUpdate({press: true, velocity: v} as PadEvent)
   }
 
   release() {
     this.pressed = false
-    this.onUpdate({press: false} as KeyEvent)
+    this.onUpdate({press: false} as PadEvent)
   }
 }
 

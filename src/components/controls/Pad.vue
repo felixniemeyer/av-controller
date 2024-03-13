@@ -36,6 +36,7 @@ const basisStyle = computed(() => {
 function touchstart(e: Event) {
   props.pad.press(1);
   (e.currentTarget as HTMLDivElement).focus()
+  e.preventDefault()
 }
 
 function touchend() {
