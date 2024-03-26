@@ -192,7 +192,7 @@ const examples = import.meta.env.DEV ? {
 } : {
   'aortic rupture': 'https://gfx.aimparency.org/rupture/',
   'music-box': 'https://gfx.aimparency.org/music-box-song/'
-}
+} as Record<string, string>
 
 </script>
 
