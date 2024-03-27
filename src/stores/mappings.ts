@@ -1,38 +1,39 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { Control, Fader, Pad } from '../controls'
-import { midiListener, ControlChange, NoteOn, MidiSignal, KeyMidiSignal, NoteOff} from '@/midiListener'
+import { midiListener, ControlChange, NoteOn, MidiSignal, NoteOff} from '@/midiListener'
 
 export abstract class Mapping {
+  public abstract control: Control
   abstract handleSignal(signal: MidiSignal) : void
 }
 
 export class ControllerToFaderMapping extends Mapping {
   constructor(
-    public controller: Fader,
+    public control: Fader,
   ) {
     super()
-    controller.addMapping(this)
+    control.addMapping(this)
   }
   handleSignal(signal: MidiSignal) {
     if(signal instanceof ControlChange) {
-      this.controller.setNormValue(signal.value / 127)
+      this.control.setNormValue(signal.value / 127)
     }
   }
 }
 
 export class KeyToPadMapping extends Mapping {
   constructor(
-    public controller: Pad,
+    public control: Pad,
   ) {
     super()
-    controller.addMapping(this)
+    control.addMapping(this)
   }
   handleSignal(signal: MidiSignal) {
     if(signal instanceof NoteOn) {
-      this.controller.press(signal.velocity / 127)
+      this.control.press(signal.velocity / 127)
     } else if (signal instanceof NoteOff) {
-      this.controller.release()
+      this.control.release()
     }
   }
 }
@@ -45,10 +46,11 @@ export interface MidiSource {
 export const useMappingsStore = defineStore('mappings', () => {
   const mappings = ref({} as {[id: string]: Mapping})
 
-  const midiSourceForMapping = ref(undefined as (undefined | MidiSource))
+  const midiSourceForMapping = ref(null as (null | MidiSource))
   const removeMapping = ref(false)
 
   function maybeMapTo(controller: Control) {
+    console.log('maybeMapTo', controller)
     if(removeMapping.value) {
       const removedMappings = controller.removeMappingsAndList()
       // find mapping in mappings and remove it
@@ -58,7 +60,7 @@ export const useMappingsStore = defineStore('mappings', () => {
           delete mappings.value[sourceId]
         }
       }
-    } else if(midiSourceForMapping.value !== undefined) {
+    } else if(midiSourceForMapping.value !== null) {
       let c: Mapping | undefined
       if(midiSourceForMapping.value.type == 'cc') {
         if(controller instanceof Fader) {
@@ -75,7 +77,6 @@ export const useMappingsStore = defineStore('mappings', () => {
       }
       if(c) {
         mappings.value[midiSourceForMapping.value!.id] = c
-        midiSourceForMapping.value = undefined
       }
     }
   }

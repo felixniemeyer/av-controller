@@ -11,7 +11,6 @@ import {
   LabelSpec,
   ConfirmButtonSpec,
   CakeSpec,
-  GroupSpecWithoutControls,
   GroupSpec,
 } from 'av-controls'
 
@@ -23,7 +22,7 @@ export abstract class Control {
 
   public onUpdate: OnUpdateCallback = () => {}
   public onTouch: OnTouchCallback = () => {}
-  public mappings: Mapping[] = []
+  public mappings: {[midiSourceId: string]: Mapping} = {}
 
   constructor(
   ) {}
@@ -82,12 +81,8 @@ export class Fader extends Control {
     this.value = spec.initialValue
   }
 
-  drag(value: number) {
-    this.onTouch(this)
-    this.setValue(value)
-  }
-
   setValue(value: number) {
+    this.onTouch(this)
     this.value = value
     this.onUpdate(value)
   }
@@ -182,6 +177,7 @@ export class ConfirmButton extends Control {
 
   private defuseTimer? : number
   press() {
+    this.onTouch(this)
     if(this.defuseTimer !== undefined) {
       clearTimeout(this.defuseTimer)
       this.defuseTimer = undefined
@@ -216,6 +212,7 @@ export class ConfirmSwitch extends Control {
 
   private defuseTimer? : number
   press() {
+    this.onTouch(this)
     if(this.defuseTimer !== undefined) {
       clearTimeout(this.defuseTimer)
       this.defuseTimer = undefined

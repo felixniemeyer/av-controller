@@ -1,4 +1,18 @@
-- control with keys
+- mapping braucht eine wesentliche überarbeitung
+  - zwei midi signals sollen auf den gleichen control gehen können
+  - ein midi signal soll auf mehrere controls gehen können
+  - midi mappings sollen gespeichert werden
+    - in localStorage anhand der url immer der letzte stand
+    - als export json datei
+      - importieren 
+    - dafür brauchen wir eine Liste mit midi-id => control-id Paaren
+      - mappings an den controls speichern
+
+- page dropdown
+
+---
+
+- D: control with keys
   - tabindex
   - arrow up down
 

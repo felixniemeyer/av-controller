@@ -1,5 +1,5 @@
 export abstract class MidiSignal {
-  abstract sourceId(): string
+  public abstract sourceId: string
 }
 
 export abstract class KeyMidiSignal extends MidiSignal {
@@ -8,34 +8,34 @@ export abstract class KeyMidiSignal extends MidiSignal {
 }
 
 export class NoteOn implements MidiSignal {
+  public sourceId
   constructor(
     public channel: number,
     public key: number,
     public velocity: number
-  ) {}
-  public sourceId() {
-    return `key-${this.channel}-${this.key}`
+  ) {
+    this.sourceId = `key-${channel}-${key}`
   }
 }
 
 export class NoteOff implements MidiSignal {
+  public sourceId
   constructor(
     public channel: number,
     public key: number
-  ) {}
-  public sourceId() {
-    return `key-${this.channel}-${this.key}`
+  ) {
+    this.sourceId = `key-${this.channel}-${this.key}`
   }
 }
 
 export class ControlChange implements MidiSignal{
+  public sourceId
   constructor(
     public channel: number,
     public cc: number,
     public value: number
-  ) {}
-  public sourceId() {
-    return `cc-${this.channel}-${this.cc}`
+  ) {
+    this.sourceId = `cc-${this.channel}-${this.cc}`
   }
 }
 

@@ -161,6 +161,9 @@ const mapSwitch = ref(new Switch(
 ))
 mapSwitch.value.onUpdate = (isOn: boolean) => {
   showMidiSignals.value = isOn 
+  if(!isOn) {
+    mappingsStore.midiSourceForMapping = null
+  }
 }
 
 const rmMapButton = ref(new Switch (
