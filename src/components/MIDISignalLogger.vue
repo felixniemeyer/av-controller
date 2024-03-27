@@ -1,7 +1,7 @@
 <script setup lang=ts>
 import { ref, computed, onMounted } from 'vue'
 import { midiListener, MidiSignal, NoteOn, NoteOff, ControlChange, KeyMidiSignal } from '@/midiListener'
-import type { MidiSource } from '@/stores/mappings'
+import type { MidiSource } from '@/mappings'
 
 const windowSize = 10000
 let lastCleanup = 0
@@ -107,10 +107,10 @@ onMounted(() => {
 })
 
 function getOrCreateKeySignalRecord(s: KeyMidiSignal) {
-  let control = recordsStore.value[s.sourceId()] as KeySignalRecord | undefined
+  let control = recordsStore.value[s.sourceId] as KeySignalRecord | undefined
   if(!control) {
     control = new KeySignalRecord(`Note ${s.key}, Channel ${s.channel}`)
-    recordsStore.value[s.sourceId()] = control
+    recordsStore.value[s.sourceId] = control
   }
   return control
 }
@@ -121,10 +121,10 @@ function onMIDIMessage(s: MidiSignal) {
   } else if(s instanceof NoteOff) {
     getOrCreateKeySignalRecord(s).off()
   } else if(s instanceof ControlChange) {
-    let control = recordsStore.value[s.sourceId()] as ControllerSignalRecord | undefined
+    let control = recordsStore.value[s.sourceId] as ControllerSignalRecord | undefined
     if(!control) {
       control = new ControllerSignalRecord(`CC ${s.cc}, Channel ${s.channel}`)
-      recordsStore.value[s.sourceId()] = control
+      recordsStore.value[s.sourceId] = control
     }
     control.touch()
   }
@@ -137,7 +137,7 @@ const selected = ref(null as number | null)
 function tap(record: MidiSignalRecord, sourceId: string, i: number) {
   if(selected.value === i) {
     const midiSource: MidiSource = {
-      id: sourceId,
+      midiSourceId: sourceId,
       type: record instanceof KeySignalRecord ? 'key' : 'cc'
     }
     emit('select', midiSource)
@@ -167,8 +167,8 @@ function laneHeight(i: number) {
   <div class="panel">
     <h3>Supported Mappings</h3>
     <ul>
-      <li>key/pad -> Button</li>
-      <li>fader/poti -> Fader</li>
+      <li>key/pad -&gt; Button</li>
+      <li>fader/poti -&gt; Fader</li>
       <li>more to come...</li>
     </ul>
   </div>
@@ -182,6 +182,10 @@ function laneHeight(i: number) {
 </template>
 
 <style scoped>
+
+.canvas {
+  margin: 0.5rem; 
+}
 
 .lane-background {
   fill: #222;
@@ -227,4 +231,14 @@ function laneHeight(i: number) {
   font-weight: bold;
   box-shadow: 0 0 2rem #000;
 }
+
+.panel {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  padding: 0.5rem 2rem; 
+  background-color: #fff2;
+  border-radius: 0.5rem;
+}
+
 </style>

@@ -35,7 +35,8 @@ const basisStyle = computed(() => {
 
 const control = ref(null) as Ref<HTMLDivElement | null>
 function press(e: Event) {
-  props.switch.touchDown()
+  props.switch.onTouch()
+  props.switch.toggle()
   e.preventDefault()
   control.value!.focus()
 }

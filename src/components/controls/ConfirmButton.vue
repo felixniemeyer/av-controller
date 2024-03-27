@@ -24,6 +24,7 @@ const basisStyle = computed(() => {
 })
 
 function press(e: Event) {
+  props.confirmButton.onTouch(); 
   props.confirmButton.press();
   const target = e.currentTarget as HTMLDivElement
   target.focus()

@@ -103,6 +103,7 @@ function updateValueY(touchY: number) : void  {
   const y = rect!.bottom- touchY 
   const v = y / rect!.height
   const clamped = Math.max(0, Math.min(1, v))
+  props.fader.onTouch()
   props.fader.setNormValue(clamped)
 }
 

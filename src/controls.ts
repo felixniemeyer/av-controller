@@ -1,5 +1,4 @@
 import type { ControlId } from 'av-controls/src/messages'
-import { Mapping } from './stores/mappings'
 
 import { 
   ControlSpec, 
@@ -13,36 +12,29 @@ import {
   CakeSpec,
   GroupSpec,
 } from 'av-controls'
+import type { Mapping } from './mappings'
 
 type OnUpdateCallback = (payload: any) => void
-type OnTouchCallback = (c: Control) => void
+type OnTouchCallback = () => void
 
 export abstract class Control {
   public abstract spec: ControlSpec
 
+  public mappings: Mapping[] = []
+
   public onUpdate: OnUpdateCallback = () => {}
   public onTouch: OnTouchCallback = () => {}
-  public mappings: {[midiSourceId: string]: Mapping} = {}
-
-  constructor(
-  ) {}
-
-  addMapping(m: Mapping) {
-    this.mappings.push(m)
-  }
-
-  removeMapping(m: Mapping) {
-    this.mappings = this.mappings.filter((mapping) => mapping !== m)
-  }
-
-  removeMappingsAndList() {
-    const mappings = this.mappings
-    this.mappings = []
-    return mappings
-  }
 
   tabIndex() {
     return 777 + this.spec.x * 101 + this.spec.y
+  }
+
+  addMapping(mapping: Mapping) {
+    this.mappings.push(mapping)
+  }
+
+  removeMappings() {
+    this.mappings = []
   }
 
   update(_payload: any, _id: ControlId = []) {
@@ -82,7 +74,6 @@ export class Fader extends Control {
   }
 
   setValue(value: number) {
-    this.onTouch(this)
     this.value = value
     this.onUpdate(value)
   }
@@ -109,7 +100,6 @@ export class Pad extends Control {
   }
 
   press(v: number) {
-    this.onTouch(this)
     this.pressed = true
     this.onUpdate({press: true, velocity: v} as PadEvent)
   }
@@ -130,11 +120,6 @@ export class Switch extends Control {
     this.on = spec.initiallyOn
   }
 
-  touchDown() {
-    this.onTouch(this)
-    this.toggle() 
-  }
-
   toggle() {
     this.on = !this.on
     this.onUpdate(this.on)
@@ -152,7 +137,6 @@ export class Selector extends Control {
   }
 
   select(value: number) {
-    this.onTouch(this)
     this.index = value
     this.onUpdate(value)
   }
@@ -177,7 +161,6 @@ export class ConfirmButton extends Control {
 
   private defuseTimer? : number
   press() {
-    this.onTouch(this)
     if(this.defuseTimer !== undefined) {
       clearTimeout(this.defuseTimer)
       this.defuseTimer = undefined
@@ -212,7 +195,6 @@ export class ConfirmSwitch extends Control {
 
   private defuseTimer? : number
   press() {
-    this.onTouch(this)
     if(this.defuseTimer !== undefined) {
       clearTimeout(this.defuseTimer)
       this.defuseTimer = undefined

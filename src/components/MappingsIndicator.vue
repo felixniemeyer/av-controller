@@ -1,5 +1,5 @@
 <script setup lang=ts>
-import { Mapping } from '@/stores/mappings'
+import { Mapping } from '@/mappings'
 
 const props = defineProps({
   mappings: {

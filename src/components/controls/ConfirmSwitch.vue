@@ -33,6 +33,7 @@ const basisStyle = computed(() => {
 })
 
 function press(e: Event) {
+  props.confirmSwitch.onTouch();
   props.confirmSwitch.press();
   const target = e.currentTarget as HTMLDivElement
   target.focus()

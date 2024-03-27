@@ -28,6 +28,7 @@ const optionColor = computed(() => {
 
 const control = ref(null) as Ref<HTMLDivElement | null>
 function selectOption(e: TouchEvent | MouseEvent, index: number) {
+  props.selector.onTouch()
   props.selector.select(index)
   e.preventDefault()
   control.value!.focus()

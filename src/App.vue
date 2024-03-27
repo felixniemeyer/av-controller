@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 
 import { 
   Messages, 
@@ -16,6 +16,7 @@ type ControlSpecsDict,
 } from 'av-controls'
 
 import {
+  Control, 
   type ControlsDict, 
   Group,
   Fader,
@@ -28,14 +29,15 @@ import {
   Cake,
 } from './controls'
 
-import { useMappingsStore, type MidiSource } from './stores/mappings'
-
 import type { ControlId } from 'av-controls/src/messages'
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
 import ControlComponent from './components/controls/Control.vue'
 
+import { midiListener } from './midiListener'
 
-const mappingsStore = useMappingsStore()
+import { type MidiSource } from './mappings'
+import { Mapping, CCToFaderMapping, KeyToPadMapping } from './mappings'
+
 
 let tab = ref(null as Window | null)
 let tabOrigin: string
@@ -81,10 +83,10 @@ function openVisualsTab() {
           const announcement = event.data as Messages.AnnounceReceiver
           controlsLabel.value.spec.name = `controlling ${announcement.name}`
           const controls = createControls(announcement.controlSpecs)
-          page.value = new Group(
+          page.value = reactive(new Group(
             new GroupSpec('1', 0, 0, 100, 100, '#000', announcement.controlSpecs, 'page'), 
             controls
-          )
+          ))
           receiverId = announcement.receiverId
         } else if(type === Messages.MeterMessage.type) {
           const msg = event.data as Messages.MeterMessage
@@ -96,7 +98,7 @@ function openVisualsTab() {
         } else if(type === Messages.TabClosing.type) {
           console.log('tab closed')
         } else {
-          console.log('unknown message type in message', event.data)
+          console.warn('unknown message type in message', event.data)
         }
       }
     } 
@@ -108,7 +110,7 @@ function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
   let controls: ControlsDict = {}
   for(let id in specs) {
     const spec = specs[id]
-    let control 
+    let control: Control | undefined
     if(spec.type === 'pad') {
       control = new Pad(spec as PadSpec)
     } else if(spec.type === 'fader') {
@@ -136,11 +138,81 @@ function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
       control.onUpdate = (payload) => {
         sendUpdateToTab(payload, scopedId)
       }
-      control.onTouch = mappingsStore.maybeMapTo
+      control.onTouch = () => {
+        controllerTouched(scopedId)
+      }
       controls[id] = control
     }
   }
   return controls
+}
+
+const midiSourceForMapping = ref(null as (null | MidiSource))
+const mappingsBySource = {} as {[midiSourceId: string]: Mapping[]}
+
+midiListener.addListener((signal) => {
+  const mappings = mappingsBySource[signal.sourceId]
+  if(mappings !== undefined) {
+    mappings.forEach(mapping => {
+      mapping.handleSignal(signal)
+    })
+  }
+})
+
+function getControl(group: Group, controlId: ControlId) {
+  if(controlId.length > 1) {
+    return getControl(group.controls[controlId[0]] as Group, controlId.slice(1))
+  } else {
+    return group.controls[controlId[0]]
+  }
+}
+
+function controllerTouched(controlId: ControlId) {
+  if(page.value) {
+    const control = getControl(page.value, controlId)
+    if(rmMapButton.value.on) {
+      for(let midiSourceId in mappingsBySource) {
+        control.removeMappings()
+        const mappings = mappingsBySource[midiSourceId]
+        let removedSome = false
+        for(let i = 0; i < mappings.length; i++) {
+          if(mappings[i].control == control) {
+            mappings.splice(i, 1)
+            removedSome = true
+          }
+        }
+        if(removedSome) {
+          rmMapButton.value.on = false
+        }
+      }
+    } else if(midiSourceForMapping.value !== null) {
+      let c: Mapping | undefined
+      if(midiSourceForMapping.value.type == 'cc') {
+        if(control instanceof Fader) {
+          c = new CCToFaderMapping(control)
+        } else {
+          console.warn('control change to non-fader not implemented')
+        }
+      } else if(midiSourceForMapping.value.type == 'key') {
+        if(control instanceof Pad) {
+          c = new KeyToPadMapping(control)
+        } else {
+          console.warn('note on to non-pad not implemented')
+        }
+      }
+      if(c) {
+        control.addMapping(c)
+        const mappings = mappingsBySource[midiSourceForMapping.value.midiSourceId]
+        if(mappings === undefined) {
+          mappingsBySource[midiSourceForMapping.value.midiSourceId] = [c]
+        } else {
+          mappings.push(c)
+        }
+        midiSourceForMapping.value = null
+        mapSwitch.value.on = false
+      }
+    }
+  }
 }
 
 const exitButton = ref(new ConfirmButton(
@@ -162,17 +234,13 @@ const mapSwitch = ref(new Switch(
 mapSwitch.value.onUpdate = (isOn: boolean) => {
   showMidiSignals.value = isOn 
   if(!isOn) {
-    mappingsStore.midiSourceForMapping = null
+    midiSourceForMapping.value = null
   }
 }
 
 const rmMapButton = ref(new Switch (
   new SwitchSpec('remove mapping', 80, 0, 10, 100, '#c23', false)
 ))
-rmMapButton.value.onUpdate = (isOn: boolean) => {
-  mappingsStore.removeMapping = isOn
-  console.log('remove mapping', mappingsStore.removeMapping)
-}
 
 function sendUpdateToTab(payload: any, controlId: ControlId) {
   if(tab.value == null) {
@@ -187,7 +255,7 @@ const showMidiSignals = ref(false)
 
 function mapMIDIActivity(midiSource: MidiSource) {
   showMidiSignals.value = false
-  mappingsStore.midiSourceForMapping = midiSource
+  midiSourceForMapping.value = midiSource
 }
 
 const examples = import.meta.env.DEV ? {
@@ -324,5 +392,4 @@ button {
   transform: translate(-50%, -50%);
   text-align: center;
 }
-
 </style>
