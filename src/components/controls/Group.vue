@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import ControlComponent from './Control.vue'
 
 import { Group } from '@/controls'
-import { makeBasisStyle } from './common'
+import { shade } from 'polished';
 
 // vue
 const props = defineProps({
@@ -15,9 +15,15 @@ const props = defineProps({
 
 const controls = computed(() => props.group.controls)
 const type = computed(() => props.group.spec.style)
-const color = computed(() => props.group.spec.color)
 
-const basisStyle = makeBasisStyle(props.group.spec) 
+// const basisStyle = makeBasisStyle(props.group.spec) 
+const basisStyle = computed(() => {
+  const color = props.group.spec.color
+  return {
+    backgroundColor: shade(0.5, color),
+    borderColor: color,
+  }
+})
 
 </script>
 
@@ -47,7 +53,7 @@ const basisStyle = makeBasisStyle(props.group.spec)
 
 .page {
   position: absolute;
-  margin: 0.5rem; 
+  margin: .5rem; 
   width: calc(100% - 1rem);
   height: calc(100% - 1rem);
 }

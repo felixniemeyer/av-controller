@@ -30,6 +30,9 @@ import {
 } from './controls'
 
 import type { ControlId } from 'av-controls/src/messages'
+
+import Gallery from './components/Gallery.vue'
+
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
 import ControlComponent from './components/controls/Control.vue'
 
@@ -38,40 +41,16 @@ import { midiListener } from './midiListener'
 import { type MidiSource } from './mappings'
 import { Mapping, CCToFaderMapping, KeyToPadMapping } from './mappings'
 
-
 let tab = ref(null as Window | null)
 let tabOrigin: string
-
-const visualTabUrl = ref('')
-const urlInputField = ref(null as HTMLInputElement | null)
-
-onMounted(() => {
-  urlInputField.value?.focus()
-})
-
-function confirmOnEnter(e: KeyboardEvent, url?: string) {
-  if(e.key === 'Enter' || e.key === ' ') {
-    if(url) {
-      openExample(url)
-    } else {
-      openVisualsTab()
-    }
-    e.stopPropagation()
-    e.preventDefault()
-  }
-}
-
-function openExample(url: string) {
-  visualTabUrl.value = url
-  openVisualsTab()
-}
 
 const page = ref<Group>()
 let receiverId = ''
 
-function openVisualsTab() {
-  tab.value = window.open(visualTabUrl.value)
-  tabOrigin = new URL(visualTabUrl.value).origin
+function openVisualsTab(visualTabUrl: string) {
+  console.log('opening tab', visualTabUrl)
+  tab.value = window.open(visualTabUrl)
+  tabOrigin = new URL(visualTabUrl).origin
   if(tab.value == null) {
     console.error('could not open tab')
     return
@@ -83,8 +62,9 @@ function openVisualsTab() {
           const announcement = event.data as Messages.AnnounceReceiver
           controlsLabel.value.spec.name = `controlling ${announcement.name}`
           const controls = createControls(announcement.controlSpecs)
+          const pageSpec = new GroupSpec('1', 0, 0, 100, 100, '#000', announcement.controlSpecs, 'page')
           page.value = reactive(new Group(
-            new GroupSpec('1', 0, 0, 100, 100, '#000', announcement.controlSpecs, 'page'), 
+            pageSpec, 
             controls
           ))
           receiverId = announcement.receiverId
@@ -258,36 +238,11 @@ function mapMIDIActivity(midiSource: MidiSource) {
   midiSourceForMapping.value = midiSource
 }
 
-const examples = import.meta.env.DEV ? {
-  'localhost:5173': 'http://localhost:5173',
-} : {
-  'aortic rupture': 'https://gfx.aimparency.org/rupture/',
-  'music-box': 'https://gfx.aimparency.org/music-box-song/'
-} as Record<string, string>
-
 </script>
 
 <template>
   <div class='tab-opener' v-if="tab == null" >
-    <div>
-      <h1>av control</h1>
-      <p>
-        Open a new tab with a av-control receiving webapp
-      </p>
-      <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
-      <button @click="openVisualsTab">open</button>
-      <div class=examples >
-        <div v-for="(url, name) in examples" 
-          class=exwrap 
-          @click="openExample(url)" 
-          @keydown="confirmOnEnter($event, url)"
-          tabindex="0" >
-          <div class=example>
-            {{ name }}
-          </div>
-        </div>
-      </div>
-    </div>
+    <Gallery @open-visuals-tab='openVisualsTab'/>
   </div>
   <div v-else class="app">
     <div class="control-header">
@@ -355,34 +310,6 @@ button {
   height: calc(100% - 4.5rem);
   width: calc(100%);
   box-sizing: border-box;
-}
-
-.exwrap {
-  display: inline-block;
-  margin: 0.5rem; 
-  width: 2rem; 
-  height: 20rem;
-  background-color: #fff3;
-  cursor: pointer;
-  border-radius: 0.5rem;
-}
-
-.exwrap:hover {
-  background-color: #fff6;
-}
-
-.example {
-  width: 2rem; 
-  height: 2rem; 
-  overflow: visible;
-  white-space: nowrap;
-  position: relative;
-  display: inline-block;
-  transform-origin: 50% 50%;
-  transform: rotate(90deg);
-  pointer-events: none;
-  line-height: 2rem;
-  padding: 0 0.5rem;
 }
 
 .wait-screen {
