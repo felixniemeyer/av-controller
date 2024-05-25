@@ -241,9 +241,7 @@ function mapMIDIActivity(midiSource: MidiSource) {
 </script>
 
 <template>
-  <div class='tab-opener' v-if="tab == null" >
-    <Gallery @open-visuals-tab='openVisualsTab'/>
-  </div>
+  <Gallery v-if="tab == null" @open-visuals-tab='openVisualsTab'/>
   <div v-else class="app">
     <div class="control-header">
       <ControlComponent :control="exitButton" />
@@ -266,22 +264,6 @@ function mapMIDIActivity(midiSource: MidiSource) {
 </template>
 
 <style scoped>
-
-.tab-opener {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100%;
-}
-
-.tab-opener div {
-  text-align: center;
-  & p {
-    margin: 0.5rem; 
-  }
-}
-
 button {
   background-color: #fff3;
   padding: 0.5rem;

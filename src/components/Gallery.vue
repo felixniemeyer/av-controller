@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineEmits, ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 import GalleryEntryComponent from './GalleryEntry.vue'
 
@@ -9,10 +9,6 @@ const urlInputField = ref(null as HTMLInputElement | null)
 // vue component emit
 
 const emits = defineEmits(['openVisualsTab'])
-
-onMounted(() => {
-  urlInputField.value?.focus()
-})
 
 function confirmOnEnter(e: KeyboardEvent, url?: string) {
   if(e.key === 'Enter' || e.key === ' ') {
@@ -63,12 +59,23 @@ const entries = (!forceProd && import.meta.env.DEV) ? [5173, 5174, 5175, 3000, 8
       profileUrl: 'https://linktr.ee/fairlix', 
     },
     artwork: {
+      title: 'stacks', 
+      description: 'Stacked disks. Can turn into flowers and gears.', 
+      url: 'https://gfx.aimparency.org/stacks/',
+    },
+    screenshotUrl: './stacks.jpg',
+  },
+  {
+    artist: {
+      alias: 'fairlix', 
+      profileUrl: 'https://linktr.ee/fairlix', 
+    },
+    artwork: {
       title: 'music box', 
       description: 'Balls in a square make sounds when colliding with the walls. Controls allow to change musical elements like the chord progression and bass pattern.', 
       url: 'https://gfx.aimparency.org/music-box-nft/',
-      nftUrl: 'https://collector.sh/fairlix/musicbox',
     },
-    screenshotUrl: './musicbox.png',
+    screenshotUrl: './musicbox.jpg',
   },
   {
     artist: {
@@ -81,7 +88,7 @@ const entries = (!forceProd && import.meta.env.DEV) ? [5173, 5174, 5175, 3000, 8
       description: 'The white structure in the foreground is the "pheromone map" of ant particles. Using blur and log a 2D distance map is created from that, which is extruded and twisted into the 3D object (aorta) in the background.', 
       url: 'https://gfx.aimparency.org/rupture/',
     },
-    screenshotUrl: './rupture.png',
+    screenshotUrl: './rupture.jpg',
   },
   {
     artist: {
@@ -93,27 +100,20 @@ const entries = (!forceProd && import.meta.env.DEV) ? [5173, 5174, 5175, 3000, 8
       subtitle: 'cities in space',
       description: 'generative 3d objects and colorful shaders', 
       url: 'https://gfx.aimparency.org/rupture/spacies-av-controlled/',
-      nftUrl: 'https://opensea.io/collection/spacies', 
+      nftUrl: 'https://gfx.aimparency.org/spacies/', 
     },
-    screenshotUrl: './spacies.png',
+    screenshotUrl: './spacies.jpg',
   },
 ] as Entry[]
 
 </script>
 
 <template>
-  <div>
+  <div class="gallery">
     <h1>av controller gallery</h1>
     
-    <p> 
-      Enter any URL of a web page with an artwork that exposes 
-      <a href='https://github.com/felixniemeyer/av-controls' target="_blank">av controls</a>
-      manually: 
-    </p>
-    <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
-    <button @click="openVisualsTab">open in separate tab</button>
     <p>
-      Or click a screenshot to open the artwork in a separate tab. <br>
+      Click an artwork to open it in a separate tab. <br>
     </p>
     <p>
       The gallery tab will then display the controls. 
@@ -125,9 +125,68 @@ const entries = (!forceProd && import.meta.env.DEV) ? [5173, 5174, 5175, 3000, 8
          @openTab="openExample(entry.artwork.url)" 
          />
     </div>
+    <p>
+      Create a controller for your artwork using
+      <a href='https://github.com/felixniemeyer/av-controls' target="_blank">av controls</a>.
+    </p>
+    <p> 
+      Open a av-controllable artwork manually:
+    </p>
+    <p>
+    <input type="text" ref='urlInputField' v-model="visualTabUrl" @keydown=confirmOnEnter placeholder="URL"/>
+    </p>
+    <p>
+    <button @click="openVisualsTab">open in separate tab</button>
+    </p>
+    <div class=footer>
+      <p> 
+      </p>
+    </div>
   </div>
 </template>
 
 <style scoped>
+
+.examples {
+  margin: 3rem 0rem;
+}
+
+.gallery {
+  margin: 10rem auto;
+  padding: 0.5rem; 
+  max-width: 100vh;
+  display: block;
+  text-align: center;
+}
+
+.gallery p {
+  margin: 1rem 2rem;
+}
+
+.footer {
+  padding-top: 10rem; 
+}
+
+.footer p {
+  margin: 0.5rem; 
+}
+
+button {
+  padding: 0.5rem; 
+  background-color: #777;
+  color: #fff; 
+  outline: none; 
+  border-radius: 1rem;
+}
+
+button:hover {
+  background-color: #000;
+}
+
+
+
+/* {
+  outline: 1px solid red;
+} /**/
 
 </style>

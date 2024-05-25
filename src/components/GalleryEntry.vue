@@ -67,19 +67,21 @@ const nftLinkName = computed(() => {
 </template>
 
 
-
 <style scoped>
 
 .entry {
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin: 2rem;
+  margin: 1rem;
+}
+
+.page {
+  margin: 1rem; 
 }
 
 .info {
-  width: 40%;
-  margin: 2rem; 
+  width: calc(50% - 2rem);
   text-align: right;
 }
 
