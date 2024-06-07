@@ -111,6 +111,9 @@ const entries = (!forceProd && import.meta.env.DEV) ? [5173, 5174, 5175, 3000, 8
 <template>
   <div class="gallery">
     <h1>av controller gallery</h1>
+    <p>
+    Fill out <a href='https://docs.google.com/forms/d/e/1FAIpQLSdYC4PtUV1GckbhWMo1u11YqGI--s6ncMxrVF87sOIVVP2gqA/viewform'>this form</a> to have your av-controllable artwork added here.
+    </p>
     
     <p>
       Click an artwork to open it in a separate tab. <br>
@@ -170,20 +173,6 @@ const entries = (!forceProd && import.meta.env.DEV) ? [5173, 5174, 5175, 3000, 8
 .footer p {
   margin: 0.5rem; 
 }
-
-button {
-  padding: 0.5rem; 
-  background-color: #777;
-  color: #fff; 
-  outline: none; 
-  border-radius: 1rem;
-}
-
-button:hover {
-  background-color: #000;
-}
-
-
 
 /* {
   outline: 1px solid red;

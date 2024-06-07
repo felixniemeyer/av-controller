@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onBeforeMount, reactive } from 'vue'
 
 import { 
   Messages, 
@@ -35,6 +35,7 @@ import Gallery from './components/Gallery.vue'
 
 import MIDISignalLogger from './components/MIDISignalLogger.vue'
 import ControlComponent from './components/controls/Control.vue'
+import LinkedArtworkPrompt from './components/LinkedArtworkPrompt.vue'
 
 import { midiListener } from './midiListener'
 
@@ -46,6 +47,16 @@ let tabOrigin: string
 
 const page = ref<Group>()
 let receiverId = ''
+
+const linkedArtwork = ref('')
+onBeforeMount(() => {
+  // check url param "control"
+  const urlParams = new URLSearchParams(window.location.search)
+  const visualTabUrl = urlParams.get('control')
+  if(visualTabUrl) {
+    linkedArtwork.value = visualTabUrl
+  }
+})
 
 function openVisualsTab(visualTabUrl: string) {
   console.log('opening tab', visualTabUrl)
@@ -241,7 +252,11 @@ function mapMIDIActivity(midiSource: MidiSource) {
 </script>
 
 <template>
-  <Gallery v-if="tab == null" @open-visuals-tab='openVisualsTab'/>
+  <LinkedArtworkPrompt v-if="linkedArtwork" :url="linkedArtwork"
+      @confirm="openVisualsTab(linkedArtwork); linkedArtwork = ''"
+      @cancel="linkedArtwork = ''"
+  />
+  <Gallery v-else-if="tab == null" @open-visuals-tab='openVisualsTab'/>
   <div v-else class="app">
     <div class="control-header">
       <ControlComponent :control="exitButton" />
