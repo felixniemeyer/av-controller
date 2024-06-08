@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeMount, reactive } from 'vue'
+import { ref, onMounted, onBeforeMount, reactive } from 'vue'
 
 import { 
   Messages, 
@@ -42,6 +42,11 @@ import { midiListener } from './midiListener'
 import { type MidiSource } from './mappings'
 import { Mapping, CCToFaderMapping, KeyToPadMapping } from './mappings'
 
+import Menu from './components/Menu.vue'
+import { type MenuSpec } from './menu-spec'
+
+import TextInputPrompt from './components/TextInputPrompt.vue'
+
 let tab = ref(null as Window | null)
 let tabOrigin: string
 
@@ -58,6 +63,13 @@ onBeforeMount(() => {
   }
 })
 
+// for dev
+onMounted(() => {
+  openVisualsTab('http://localhost:5173')
+})
+
+const controlledName = ref('')
+
 function openVisualsTab(visualTabUrl: string) {
   console.log('opening tab', visualTabUrl)
   tab.value = window.open(visualTabUrl)
@@ -71,6 +83,7 @@ function openVisualsTab(visualTabUrl: string) {
         const type = event.data.type
         if(type === Messages.AnnounceReceiver.type) {
           const announcement = event.data as Messages.AnnounceReceiver
+          controlledName.value = announcement.name
           controlsLabel.value.spec.name = `controlling ${announcement.name}`
           const controls = createControls(announcement.controlSpecs)
           const pageSpec = new GroupSpec('1', 0, 0, 100, 100, '#000', announcement.controlSpecs, 'page')
@@ -216,11 +229,11 @@ exitButton.value.onUpdate = (confirmed) => {
 }
 
 const controlsLabel = ref(new Label(
-  new LabelSpec('controls', 10, 0, 70, 100, '#555', 'center')
+  new LabelSpec('controls', 10, 0, 30, 100, '#555', 'center')
 ))
 
 const mapSwitch = ref(new Switch(
-  new SwitchSpec('map', 90, 0, 10, 100, '#2aa', false)
+  new SwitchSpec('map', 93.333, 0, 6.666, 100, '#2aa', false)
 ))
 mapSwitch.value.onUpdate = (isOn: boolean) => {
   showMidiSignals.value = isOn 
@@ -230,8 +243,143 @@ mapSwitch.value.onUpdate = (isOn: boolean) => {
 }
 
 const rmMapButton = ref(new Switch (
-  new SwitchSpec('remove mapping', 80, 0, 10, 100, '#c23', false)
+  new SwitchSpec('remove mapping', 86.666, 0, 6.666, 100, '#c23', false)
 ))
+
+// load list of saved mappings names from local storage for current controllable
+function getSavedMappings() {
+  const savedMappings = localStorage.getItem('savedMappings')
+
+  try {
+    console.log('saved mappings', savedMappings)
+    const object = savedMappings ? JSON.parse(savedMappings) : {}
+    return object[controlledName.value] || {}
+  } catch(error: any) {
+    console.error('failed to load saved mappings', error) 
+  }
+}
+
+function saveMapping(name: string) {
+  // save mappings to local storage
+  let savedMappingsString = localStorage.getItem('savedMappings')
+  let savedMappings: any
+  if(savedMappingsString == null) {
+    savedMappings = {}
+  } else {
+    savedMappings = JSON.parse(savedMappingsString)
+  }
+  let mappingsForControllable = savedMappings[controlledName.value]
+  if(mappingsForControllable == undefined) {
+    mappingsForControllable = savedMappings[controlledName.value] = {}
+  }
+  mappingsForControllable[name] = mappingsBySource
+  localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
+}
+
+const menu = ref(null as (null | MenuSpec))
+const manageMappingsButton = new Pad(
+  new PadSpec('manage mappings', 80, 0, 6.666, 100, '#2a2'),
+)
+manageMappingsButton.onUpdate = (payload) => {
+  if(payload.press) {
+    console.log('opening menu')
+    const savedMappings = getSavedMappings()
+    console.log(savedMappings)
+    const mappingNames = Object.keys(savedMappings)
+    menu.value = {
+      name: 'Manage mappings',
+      description: 'Save, load, export, import or delete midi mappings for ' + controlledName.value,
+      items: [
+        {
+          name: 'save',
+          action: 'save',
+          submenu: {
+            name: 'Saving mapping as ...', 
+            description: 'Overwrite a setting or save the current mappings as a new file',
+            items: [
+              {
+                name: 'new mapping', 
+                action: {
+                  type: 'new'
+                },
+                color: '#8f8',
+              },
+              ...mappingNames.map(name => ({
+                name: name,
+                action: {
+                  type: 'overwrite', 
+                  name
+                }, 
+                color: '#f88',
+              })),
+            ],
+          },
+        },
+        {
+          name: 'load',
+          action: 'load',
+          submenu: {
+            name: 'Load saved mapping', 
+            description: 'Load a saved mapping. This will override the currently active mapping', 
+            items: mappingNames.map(name => ({
+              name, 
+              action: {
+                type: 'load', 
+                name
+              }
+            }))
+          }
+        },
+        {
+          name: 'export',
+          action: 'not implemented yet',
+        },
+        {
+          name: 'import',
+          action: 'not implemented yet',
+        },
+        {
+          name: 'delete',
+          action: 'delete',
+          submenu: {
+            name: 'Delete saved mapping', 
+            description: 'Delete a mapping. This cannot be undone and the mapping can\'t be loaded anymore afterwards.', 
+            items: mappingNames.map(name => ({
+              name, 
+              action: {
+                type: 'delete', 
+                name
+              }
+            }))
+          }
+        },
+      ],
+    };
+  }
+}
+
+const textInputHandler = ref(null as null | ((value: string) => void))
+const textInputTitle = ref('')
+const textInputPlaceholder = ref('') 
+
+function handleMenuAction(action: any) {
+  console.log('menu action', action)
+  if(action.type == 'new') {
+    console.log('saving mapping') 
+    textInputTitle.value = 'Enter the name for the new mapping'
+    textInputPlaceholder.value = 'new mapping name'
+    textInputHandler.value = (newMappingName) => {
+      saveMapping(newMappingName)
+      textInputHandler.value = null
+      menu.value = null
+    }
+  } 
+}
+
+function closeMenu() {
+  console.log('closing menu') 
+  textInputHandler.value = null
+}
 
 function sendUpdateToTab(payload: any, controlId: ControlId) {
   if(tab.value == null) {
@@ -256,7 +404,7 @@ function mapMIDIActivity(midiSource: MidiSource) {
       @confirm="openVisualsTab(linkedArtwork); linkedArtwork = ''"
       @cancel="linkedArtwork = ''"
   />
-  <Gallery v-else-if="tab == null" @open-visuals-tab='openVisualsTab'/>
+  <Gallery v-else-if="false && tab == null" @open-visuals-tab='openVisualsTab'/>
   <div v-else class="app">
     <div class="control-header">
       <ControlComponent :control="exitButton" />
@@ -264,6 +412,7 @@ function mapMIDIActivity(midiSource: MidiSource) {
       <!-- TBD! show info switch -->
       <!-- TBD! bookmark scene -->
       <!-- TBD! PadComponent :pad="saveMappingsButton" /-->
+      <ControlComponent :control="manageMappingsButton" />
       <ControlComponent :control="mapSwitch" />
       <ControlComponent :control="rmMapButton" />
     </div>
@@ -276,6 +425,18 @@ function mapMIDIActivity(midiSource: MidiSource) {
       <ControlComponent v-else :control="page"/> 
     </div>
   </div>
+  <Menu 
+    v-if="menu" 
+    :menu="menu" 
+    @back="menu = null"
+    @action="handleMenuAction" />
+  <TextInputPrompt 
+    v-if='textInputHandler'
+    :title='textInputTitle'
+    :placeholder='textInputPlaceholder'
+    @submit='textInputHandler'
+    @close='textInputHandler = null'
+    />
 </template>
 
 <style scoped>
