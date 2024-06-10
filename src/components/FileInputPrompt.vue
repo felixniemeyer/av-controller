@@ -6,51 +6,45 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  placeholder: {
-    type: String,
-    required: false,
-    default: 'Enter text here...',
+});
+
+const emit = defineEmits(['close', 'fileUploaded']);
+
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+onMounted(() => {
+  if (fileInputRef.value) {
+    fileInputRef.value.focus();
   }
 });
 
-
-// focus on mounted
-const inputRef = ref(null as HTMLInputElement | null)
-onMounted(() => {
-  console.log(inputRef); 
-  inputRef.value!.focus()
-}) 
-
-const emit = defineEmits(['close', 'submit']);
-
-const inputText = ref('');
+const selectedFile = ref<File | null>(null);
 
 function handleClose() {
   emit('close');
 }
 
-function handleSubmit() {
-  emit('submit', inputText.value);
+function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    selectedFile.value = target.files[0];
+    emit('fileUploaded', selectedFile.value);
+  }
 }
 </script>
 
 <template>
   <div class="popup">
-    <div class="popup-content"
-      @keydown.esc='handleClose'
-      >
+    <div class="popup-content" @keydown.esc="handleClose">
       <h3>{{ props.title }}</h3>
       <input 
-        v-model="inputText" 
-        ref='inputRef'
-        :placeholder="props.placeholder" 
-        @keydown.enter='handleSubmit'
-        class="textInput" 
-        type="text"
+        ref="fileInputRef" 
+        type="file" 
+        @change="handleFileUpload" 
+        class="fileInput"
       />
       <div class="buttons">
         <button class="button" @click="handleClose">Close</button>
-        <button class="button" @click="handleSubmit">Submit</button>
       </div>
     </div>
   </div>
@@ -81,7 +75,7 @@ function handleSubmit() {
   text-align: center;
 }
 
-.textInput {
+.fileInput {
   width: 100%;
   padding: 0.5rem;
   margin: 1rem 0;
@@ -92,5 +86,4 @@ function handleSubmit() {
 .button {
   padding: 0.5rem 1rem;
 }
-
 </style>

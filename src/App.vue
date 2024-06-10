@@ -46,6 +46,7 @@ import Menu from './components/Menu.vue'
 import { type MenuSpec } from './menu-spec'
 
 import TextInputPrompt from './components/TextInputPrompt.vue'
+import FileInputPrompt from './components/FileInputPrompt.vue'
 
 let tab = ref(null as Window | null)
 let tabOrigin: string
@@ -152,7 +153,7 @@ function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
 }
 
 const midiSourceForMapping = ref(null as (null | MidiSource))
-const mappingsBySource = {} as {[midiSourceId: string]: Mapping[]}
+let mappingsBySource = {} as {[midiSourceId: string]: Mapping[]}
 
 midiListener.addListener((signal) => {
   const mappings = mappingsBySource[signal.sourceId]
@@ -190,33 +191,40 @@ function controllerTouched(controlId: ControlId) {
         }
       }
     } else if(midiSourceForMapping.value !== null) {
-      let c: Mapping | undefined
-      if(midiSourceForMapping.value.type == 'cc') {
-        if(control instanceof Fader) {
-          c = new CCToFaderMapping(control)
-        } else {
-          console.warn('control change to non-fader not implemented')
-        }
-      } else if(midiSourceForMapping.value.type == 'key') {
-        if(control instanceof Pad) {
-          c = new KeyToPadMapping(control)
-        } else {
-          console.warn('note on to non-pad not implemented')
-        }
-      }
-      if(c) {
-        control.addMapping(c)
-        const mappings = mappingsBySource[midiSourceForMapping.value.midiSourceId]
-        if(mappings === undefined) {
-          mappingsBySource[midiSourceForMapping.value.midiSourceId] = [c]
-        } else {
-          mappings.push(c)
-        }
+      if(addMappingToControl(midiSourceForMapping.value, control)) {
         midiSourceForMapping.value = null
         mapSwitch.value.on = false
       }
     }
   }
+}
+
+function addMappingToControl(midiSource: MidiSource, control: Control) {
+  let c: Mapping | undefined
+  if(midiSource.type == 'cc') {
+    if(control instanceof Fader) {
+      c = new CCToFaderMapping(control)
+    } else {
+      console.warn('control change to non-fader not implemented')
+    }
+  } else if(midiSource.type == 'key') {
+    if(control instanceof Pad) {
+      c = new KeyToPadMapping(control)
+    } else {
+      console.warn('note on to non-pad not implemented')
+    }
+  }
+  if(c) {
+    control.addMapping(c)
+    const mappings = mappingsBySource[midiSource.midiSourceId]
+    if(mappings === undefined) {
+      mappingsBySource[midiSource.midiSourceId] = [c]
+    } else {
+      mappings.push(c)
+    }
+    return true
+  }
+  return false
 }
 
 const exitButton = ref(new ConfirmButton(
@@ -259,7 +267,7 @@ function getSavedMappings() {
   }
 }
 
-function saveMapping(name: string) {
+function saveMappings(name: string) {
   // save mappings to local storage
   let savedMappingsString = localStorage.getItem('savedMappings')
   let savedMappings: any
@@ -272,8 +280,103 @@ function saveMapping(name: string) {
   if(mappingsForControllable == undefined) {
     mappingsForControllable = savedMappings[controlledName.value] = {}
   }
-  mappingsForControllable[name] = mappingsBySource
+  // serialize mappings
+  const mappings = recursivelyGatherMappings(page.value!.controls)
+  mappingsForControllable[name] = mappings
+  console.log('savedMappings', savedMappings)
   localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
+}
+
+function exportMappingsAsFile() {
+  const mappings = recursivelyGatherMappings(page.value!.controls)
+  // export as download file
+  const blob = new Blob([JSON.stringify(mappings)], {type: 'application/json'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'mappings.json'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function recursivelyGatherMappings(controls: ControlsDict, ) : any {
+  const mappings = []
+  for(let controlId in controls) {
+    const control = controls[controlId]
+    if(control instanceof Group) {
+      mappings.push({
+        type: 'group', 
+        mappings: recursivelyGatherMappings(control.controls), 
+        controlId
+      })
+    } else {
+      const control = controls[controlId]
+      for(let sourceId in mappingsBySource) {
+        mappingsBySource[sourceId].forEach(mapping => {
+          let signalType = undefined as undefined | string
+          if(mapping instanceof CCToFaderMapping) {
+            signalType = 'cc'
+          } else if (mapping instanceof KeyToPadMapping) {
+            signalType = 'key'
+          } else {
+            throw('unknown signal type when saving midi mapping') 
+          }
+          if(mapping.control == control) {
+            mappings.push({
+              type: 'mapping', 
+              source: {
+                midiSourceId: sourceId, 
+                type: signalType
+              }, 
+              controlId
+            })
+          }
+        })
+      }
+    }
+  }
+  return mappings
+}
+
+function loadMappings(name: string) {
+  removeAllMappings()
+  const mappings = getSavedMappings()[name]
+  if(mappings) {
+    recursivelyAddMappings(mappings)
+  }
+  // TBD
+}
+
+function importMappingsFromFile(file: File) {
+  // read json file
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    const mappings = JSON.parse(event.target!.result as string)
+    removeAllMappings()
+    recursivelyAddMappings(mappings)
+  }
+  reader.readAsText(file)
+}
+
+function recursivelyAddMappings(mappings: any, path = []) {
+  mappings.forEach((node: any) => {
+    const fullId = path.concat(node.controlId)
+    if(node.type == 'group') {
+      recursivelyAddMappings(node.mappings, fullId)
+    } else {
+      const control = getControl(page.value!, fullId)
+      addMappingToControl(node.source, control)
+    }
+  })
+}
+
+function removeAllMappings() {
+  for(let sourceId in mappingsBySource) {
+    mappingsBySource[sourceId].forEach(mapping => {
+      mapping.control.removeMappings()
+    })
+  }
+  mappingsBySource = {}
 }
 
 const menu = ref(null as (null | MenuSpec))
@@ -292,7 +395,6 @@ manageMappingsButton.onUpdate = (payload) => {
       items: [
         {
           name: 'save',
-          action: 'save',
           submenu: {
             name: 'Saving mapping as ...', 
             description: 'Overwrite a setting or save the current mappings as a new file',
@@ -317,7 +419,6 @@ manageMappingsButton.onUpdate = (payload) => {
         },
         {
           name: 'load',
-          action: 'load',
           submenu: {
             name: 'Load saved mapping', 
             description: 'Load a saved mapping. This will override the currently active mapping', 
@@ -332,11 +433,11 @@ manageMappingsButton.onUpdate = (payload) => {
         },
         {
           name: 'export',
-          action: 'not implemented yet',
+          action: 'export',
         },
         {
           name: 'import',
-          action: 'not implemented yet',
+          action: 'import',
         },
         {
           name: 'delete',
@@ -362,6 +463,10 @@ const textInputHandler = ref(null as null | ((value: string) => void))
 const textInputTitle = ref('')
 const textInputPlaceholder = ref('') 
 
+const fileInputHandler = ref(null as null | ((file: File) => void))
+const fileInputTitle = ref('')
+const fileInputDescription = ref('')
+
 function handleMenuAction(action: any) {
   console.log('menu action', action)
   if(action.type == 'new') {
@@ -369,11 +474,28 @@ function handleMenuAction(action: any) {
     textInputTitle.value = 'Enter the name for the new mapping'
     textInputPlaceholder.value = 'new mapping name'
     textInputHandler.value = (newMappingName) => {
-      saveMapping(newMappingName)
+      saveMappings(newMappingName)
       textInputHandler.value = null
       menu.value = null
     }
-  } 
+  } else if(action.type == 'load') {
+    console.log('loading mapping') 
+    loadMappings(action.name)
+    menu.value = null
+  } else if(action == 'export') {
+    exportMappingsAsFile()
+    menu.value = null
+  } else if(action == 'import') {
+    console.log('importing mappings')
+    fileInputTitle.value = 'Import mappings'
+    fileInputDescription.value = 'Upload a mappings file from your computer in order to import mappings'
+    fileInputHandler.value = (file) => {
+      console.log('importing mappings from file', file)
+      importMappingsFromFile(file)
+      fileInputHandler.value = null
+      menu.value = null
+    }
+  }
 }
 
 function closeMenu() {
@@ -411,7 +533,6 @@ function mapMIDIActivity(midiSource: MidiSource) {
       <ControlComponent :control="controlsLabel" />
       <!-- TBD! show info switch -->
       <!-- TBD! bookmark scene -->
-      <!-- TBD! PadComponent :pad="saveMappingsButton" /-->
       <ControlComponent :control="manageMappingsButton" />
       <ControlComponent :control="mapSwitch" />
       <ControlComponent :control="rmMapButton" />
@@ -436,6 +557,13 @@ function mapMIDIActivity(midiSource: MidiSource) {
     :placeholder='textInputPlaceholder'
     @submit='textInputHandler'
     @close='textInputHandler = null'
+    />
+  <FileInputPrompt 
+    v-if='fileInputHandler'
+    :title='fileInputTitle'
+    :description='fileInputDescription'
+    @fileUploaded='fileInputHandler'
+    @close='fileInputHandler = null'
     />
 </template>
 

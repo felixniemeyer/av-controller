@@ -103,7 +103,14 @@ const recordsStore = ref({} as {[key: string]: MidiSignalRecord})
 onMounted(() => {
   midiListener.addListener(onMIDIMessage)
   startTime.value = Date.now()
+  recordsStore.value
   tryResize()
+  {
+    // for debugging
+    const s = new ControllerSignalRecord('peter') 
+    recordsStore.value['test signal'] = s
+    s.touch()
+  }
 })
 
 function getOrCreateKeySignalRecord(s: KeyMidiSignal) {

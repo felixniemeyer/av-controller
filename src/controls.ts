@@ -25,6 +25,9 @@ export abstract class Control {
   public onUpdate: OnUpdateCallback = () => {}
   public onTouch: OnTouchCallback = () => {}
 
+  constructor(
+  ) { }
+
   tabIndex() {
     return 777 + this.spec.x * 101 + this.spec.y
   }

@@ -83,6 +83,7 @@ function performAction(action: any) {
   width: 10rem; 
   height: 10rem;
   text-align: center;
+  vertical-align: middle; 
 }
 .exitButton {
   background-color: #f88;
