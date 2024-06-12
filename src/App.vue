@@ -19,6 +19,7 @@ import {
   Control, 
   type ControlsDict, 
   Group,
+  TabbedPages, 
   Fader,
   Pad,
   Switch,
@@ -47,6 +48,7 @@ import { type MenuSpec } from './menu-spec'
 
 import TextInputPrompt from './components/TextInputPrompt.vue'
 import FileInputPrompt from './components/FileInputPrompt.vue'
+import ConfirmPrompt from './components/ConfirmPrompt.vue'
 
 let tab = ref(null as Window | null)
 let tabOrigin: string
@@ -135,6 +137,14 @@ function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
     } else if(spec.type === 'group') {
       const groupSpec = spec as GroupSpec
       control = new Group(groupSpec, createControls(groupSpec.controlSpecs, idPath.concat(id)))
+    } else if(spec.type === 'tabbed-pages') {
+      const tabbedPagesSpec = spec as TabbedPagesSpec
+      const pages = {}
+      for(let pageId in tabbedPagesSpec.pageSpecs) {
+        const pageSpec = tabbedPagesSpec.pageSpecs[pageId]
+        pages[pageId] = createControls(pageSpec, idPath.concat(id, pageId))
+      }
+      control = new TabbedPages(tabbedPagesSpec, pages)
     } else {
       console.error('unknown control type', spec)
     }
@@ -164,17 +174,21 @@ midiListener.addListener((signal) => {
   }
 })
 
-function getControl(group: Group, controlId: ControlId) {
-  if(controlId.length > 1) {
-    return getControl(group.controls[controlId[0]] as Group, controlId.slice(1))
+
+function getControl(controls: ControlsDict, idPath: ControlId) {
+  const node = controls[idPath[0]]
+  if(node instanceof TabbedPages) {
+    return getControl(node.pages[idPath[1]], idPath.slice(2))
+  } else if(node instanceof Group) {
+    return getControl(node.controls, idPath.slice(1))
   } else {
-    return group.controls[controlId[0]]
+    return node
   }
 }
 
 function controllerTouched(controlId: ControlId) {
   if(page.value) {
-    const control = getControl(page.value, controlId)
+    const control = getControl(page.value.controls, controlId)
     if(rmMapButton.value.on) {
       for(let midiSourceId in mappingsBySource) {
         control.removeMappings()
@@ -259,7 +273,6 @@ function getSavedMappings() {
   const savedMappings = localStorage.getItem('savedMappings')
 
   try {
-    console.log('saved mappings', savedMappings)
     const object = savedMappings ? JSON.parse(savedMappings) : {}
     return object[controlledName.value] || {}
   } catch(error: any) {
@@ -277,13 +290,36 @@ function saveMappings(name: string) {
     savedMappings = JSON.parse(savedMappingsString)
   }
   let mappingsForControllable = savedMappings[controlledName.value]
+  const write = () => {
+    // serialize mappings
+    const mappings = recursivelyGatherMappings(page.value!.controls)
+    console.log('gathered for saving:', mappings)
+    mappingsForControllable[name] = mappings
+    localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
+  }
   if(mappingsForControllable == undefined) {
     mappingsForControllable = savedMappings[controlledName.value] = {}
+  } 
+  if(mappingsForControllable[name]) {
+    console.warn('overwriting existing mapping', name)
+    confirmTitle.value = 'Overwrite mapping'
+    confirmMessage.value = 'Are you sure you want to overwrite the mapping ' + name + '?'
+    confirmHandler.value = () => {
+      confirmHandler.value = null
+      write()
+    }
+  } else {
+    write()
   }
-  // serialize mappings
-  const mappings = recursivelyGatherMappings(page.value!.controls)
-  mappingsForControllable[name] = mappings
-  console.log('savedMappings', savedMappings)
+}
+
+function deleteMapping(name: string) {
+  const savedMappingsString = localStorage.getItem('savedMappings')
+  const savedMappings = JSON.parse(savedMappingsString)
+  let mappingsForControllable = savedMappings[controlledName.value]
+  if(mappingsForControllable) {
+    delete mappingsForControllable[name]
+  }
   localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
 }
 
@@ -300,13 +336,25 @@ function exportMappingsAsFile() {
 }
 
 function recursivelyGatherMappings(controls: ControlsDict, ) : any {
+  console.log('called recursivelyGatherMappings with', controls)
   const mappings = []
   for(let controlId in controls) {
+    console.log('controlId', controlId)
     const control = controls[controlId]
     if(control instanceof Group) {
       mappings.push({
         type: 'group', 
         mappings: recursivelyGatherMappings(control.controls), 
+        controlId
+      })
+    } else if (control instanceof TabbedPages) {
+      const pages = {}
+      for(let pageId in control.pages) {
+        pages[pageId] = recursivelyGatherMappings(control.pages[pageId])
+      }
+      mappings.push({
+        type: 'tabbed-pages', 
+        pages, 
         controlId
       })
     } else {
@@ -344,18 +392,11 @@ function loadMappings(name: string) {
   if(mappings) {
     recursivelyAddMappings(mappings)
   }
-  // TBD
 }
 
 function importMappingsFromFile(file: File) {
-  // read json file
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    const mappings = JSON.parse(event.target!.result as string)
-    removeAllMappings()
-    recursivelyAddMappings(mappings)
-  }
-  reader.readAsText(file)
+  // ask for upload
+
 }
 
 function recursivelyAddMappings(mappings: any, path = []) {
@@ -363,8 +404,12 @@ function recursivelyAddMappings(mappings: any, path = []) {
     const fullId = path.concat(node.controlId)
     if(node.type == 'group') {
       recursivelyAddMappings(node.mappings, fullId)
+    } else if(node.type == 'tabbed-pages') {
+      for(let pageId in node.pages) {
+        recursivelyAddMappings(node.pages[pageId], fullId.concat(pageId))
+      }
     } else {
-      const control = getControl(page.value!, fullId)
+      const control = getControl(page.value.controls, fullId)
       addMappingToControl(node.source, control)
     }
   })
@@ -385,9 +430,7 @@ const manageMappingsButton = new Pad(
 )
 manageMappingsButton.onUpdate = (payload) => {
   if(payload.press) {
-    console.log('opening menu')
     const savedMappings = getSavedMappings()
-    console.log(savedMappings)
     const mappingNames = Object.keys(savedMappings)
     menu.value = {
       name: 'Manage mappings',
@@ -467,10 +510,12 @@ const fileInputHandler = ref(null as null | ((file: File) => void))
 const fileInputTitle = ref('')
 const fileInputDescription = ref('')
 
+const confirmHandler = ref(null as null | ((confirmed: boolean) => void))
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+
 function handleMenuAction(action: any) {
-  console.log('menu action', action)
   if(action.type == 'new') {
-    console.log('saving mapping') 
     textInputTitle.value = 'Enter the name for the new mapping'
     textInputPlaceholder.value = 'new mapping name'
     textInputHandler.value = (newMappingName) => {
@@ -478,28 +523,35 @@ function handleMenuAction(action: any) {
       textInputHandler.value = null
       menu.value = null
     }
+  } else if(action.type == 'overwrite') {
+    saveMappings(action.name)
+    menu.value = null
   } else if(action.type == 'load') {
-    console.log('loading mapping') 
     loadMappings(action.name)
     menu.value = null
   } else if(action == 'export') {
     exportMappingsAsFile()
     menu.value = null
   } else if(action == 'import') {
-    console.log('importing mappings')
     fileInputTitle.value = 'Import mappings'
     fileInputDescription.value = 'Upload a mappings file from your computer in order to import mappings'
     fileInputHandler.value = (file) => {
-      console.log('importing mappings from file', file)
       importMappingsFromFile(file)
       fileInputHandler.value = null
+      menu.value = null
+    }
+  } else if(action.type == 'delete') {
+    confirmTitle.value = 'Delete mapping'
+    confirmMessage.value = 'Are you sure you want to delete the mapping ' + action.name + '?'
+    confirmHandler.value = () => {
+      deleteMapping(action.name)
+      confirmHandler.value = null
       menu.value = null
     }
   }
 }
 
 function closeMenu() {
-  console.log('closing menu') 
   textInputHandler.value = null
 }
 
@@ -564,6 +616,13 @@ function mapMIDIActivity(midiSource: MidiSource) {
     :description='fileInputDescription'
     @fileUploaded='fileInputHandler'
     @close='fileInputHandler = null'
+    />
+  <ConfirmPrompt 
+    v-if='confirmHandler'
+    :title='confirmTitle'
+    :description='confirmMessage'
+    @confirm='confirmHandler'
+    @cancel='fileInputHandler = null'
     />
 </template>
 

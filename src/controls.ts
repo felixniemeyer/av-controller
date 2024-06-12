@@ -11,6 +11,7 @@ import {
   ConfirmButtonSpec,
   CakeSpec,
   GroupSpec,
+  TabbedPagesSpec,
 } from 'av-controls'
 import type { Mapping } from './mappings'
 
@@ -41,7 +42,6 @@ export abstract class Control {
   }
 
   update(_payload: any, _id: ControlId = []) {
-    // implement for meters
   }
 }
 export type ControlsDict = {[id: string]: Control}
@@ -55,11 +55,31 @@ export class Group extends Control {
   }
 
   update(payload: any, id: ControlId) {
-    if(id.length > 1) {
-      const group = this.controls[id[0]] as Group
-      group.update(payload, id.slice(1))
-    } else if (id.length === 1){
+    if(id.length > 0) {
       this.controls[id[0]].update(payload)
+    } else {
+      // updates are for the group itself
+    }
+  }
+}
+
+export class TabbedPages extends Control {
+  public activePage: string
+
+  constructor(
+    public spec: TabbedPagesSpec,
+    public pages: {[pageName: string]: ControlsDict}, 
+  ) {
+    super()
+    this.activePage = Object.keys(pages)[0]
+  }
+
+  update(payload: any, id: ControlId) {
+    if(id.length > 1) {
+      const page = this.pages[id[0]]
+      page[id[1]].update(payload, id.slice(2))
+    } else if (id.length === 1){
+      // update for the page (?)
     } else {
       // updates are for the group itself
     }

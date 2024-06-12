@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, defineEmits } from 'vue';
+import { ref } from 'vue';
 
 import { type MenuSpec, type MenuItemSpec } from '@/menu-spec';
 

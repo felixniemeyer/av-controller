@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import ControlComponent from './Control.vue'
 
+import Area from './Area.vue'
+
 import { Group } from '@/controls'
 import { shade } from 'polished';
 
@@ -33,15 +35,11 @@ const basisStyle = computed(() => {
       {{ props.group.spec.name }}
     </div>
     <div class="content any">
-      <template v-for="control, i in controls" :key="i">
-        <ControlComponent :control="control"/>
-      </template>
+      <Area :controls=controls />
     </div>
   </div>
   <div v-else :class="type">
-    <template v-for="control, i in controls" :key="i">
-      <ControlComponent :control="control"/>
-    </template>
+    <Area :controls=controls />
   </div>
 </template>
 
@@ -49,13 +47,6 @@ const basisStyle = computed(() => {
 @import './control-styles.css';
 .any {
   cursor: default; 
-}
-
-.page {
-  position: absolute;
-  margin: .5rem; 
-  width: calc(100% - 1rem);
-  height: calc(100% - 1rem);
 }
 
 .framed {
