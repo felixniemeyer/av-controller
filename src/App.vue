@@ -12,6 +12,7 @@ import {
   ConfirmSwitchSpec,
   CakeSpec,
   GroupSpec,
+  TabbedPagesSpec,
 type ControlSpecsDict,
 } from 'av-controls'
 
@@ -66,12 +67,21 @@ onBeforeMount(() => {
   }
 })
 
-// for dev
-onMounted(() => {
-  openVisualsTab('http://localhost:5173')
-})
+openLinkedArtwork = () => {
+  openVisualsTab(linkedArtwork); 
+  linkedArtwork = ''
+}
+
+const DEV_AUTO_OPEN = false
+if(DEV_AUTO_OPEN) {
+  onMounted(() => {
+    openVisualsTab('http://localhost:5173')
+  })
+}
 
 const controlledName = ref('')
+
+
 
 function openVisualsTab(visualTabUrl: string) {
   console.log('opening tab', visualTabUrl)
@@ -81,6 +91,9 @@ function openVisualsTab(visualTabUrl: string) {
     console.error('could not open tab')
     return
   } else {
+    // append visualTabUrl to current url
+    window.history.pushState({}, '', window.location.origin + window.location.pathname + '?control=' + visualTabUrl)
+
     const messageHandler = (event: MessageEvent) => {
       if(tab.value && event.origin == tabOrigin) {
         const type = event.data.type
@@ -139,7 +152,7 @@ function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
       control = new Group(groupSpec, createControls(groupSpec.controlSpecs, idPath.concat(id)))
     } else if(spec.type === 'tabbed-pages') {
       const tabbedPagesSpec = spec as TabbedPagesSpec
-      const pages = {}
+      const pages = {} as {[pageName: string]: ControlsDict}
       for(let pageId in tabbedPagesSpec.pageSpecs) {
         const pageSpec = tabbedPagesSpec.pageSpecs[pageId]
         pages[pageId] = createControls(pageSpec, idPath.concat(id, pageId))
@@ -315,12 +328,14 @@ function saveMappings(name: string) {
 
 function deleteMapping(name: string) {
   const savedMappingsString = localStorage.getItem('savedMappings')
-  const savedMappings = JSON.parse(savedMappingsString)
-  let mappingsForControllable = savedMappings[controlledName.value]
-  if(mappingsForControllable) {
-    delete mappingsForControllable[name]
+  if(savedMappingsString != null) {
+    const savedMappings = JSON.parse(savedMappingsString)
+    let mappingsForControllable = savedMappings[controlledName.value]
+    if(mappingsForControllable) {
+      delete mappingsForControllable[name]
+    }
+    localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
   }
-  localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
 }
 
 function exportMappingsAsFile() {
@@ -348,7 +363,7 @@ function recursivelyGatherMappings(controls: ControlsDict, ) : any {
         controlId
       })
     } else if (control instanceof TabbedPages) {
-      const pages = {}
+      const pages = {} as {[pageId: string]: ControlsDict}
       for(let pageId in control.pages) {
         pages[pageId] = recursivelyGatherMappings(control.pages[pageId])
       }
@@ -399,7 +414,7 @@ function importMappingsFromFile(file: File) {
 
 }
 
-function recursivelyAddMappings(mappings: any, path = []) {
+function recursivelyAddMappings(mappings: any, path: string[] = []) {
   mappings.forEach((node: any) => {
     const fullId = path.concat(node.controlId)
     if(node.type == 'group') {
@@ -409,8 +424,10 @@ function recursivelyAddMappings(mappings: any, path = []) {
         recursivelyAddMappings(node.pages[pageId], fullId.concat(pageId))
       }
     } else {
-      const control = getControl(page.value.controls, fullId)
-      addMappingToControl(node.source, control)
+      if(page.value) {
+        const control = getControl(page.value.controls, fullId)
+        addMappingToControl(node.source, control)
+      }
     }
   })
 }
@@ -575,10 +592,10 @@ function mapMIDIActivity(midiSource: MidiSource) {
 
 <template>
   <LinkedArtworkPrompt v-if="linkedArtwork" :url="linkedArtwork"
-      @confirm="openVisualsTab(linkedArtwork); linkedArtwork = ''"
+      @confirm="openLinkedArtwork"
       @cancel="linkedArtwork = ''"
   />
-  <Gallery v-else-if="false && tab == null" @open-visuals-tab='openVisualsTab'/>
+  <Gallery v-else-if="!DEV_AUTO_OPEN && tab == null" @open-visuals-tab='openVisualsTab'/>
   <div v-else class="app">
     <div class="control-header">
       <ControlComponent :control="exitButton" />
@@ -622,7 +639,7 @@ function mapMIDIActivity(midiSource: MidiSource) {
     :title='confirmTitle'
     :description='confirmMessage'
     @confirm='confirmHandler'
-    @cancel='fileInputHandler = null'
+    @cancel='confirmHandler = null'
     />
 </template>
 

@@ -16,17 +16,14 @@ const props = defineProps({
 })
 
 const controls = computed(() => props.tabbedPages.pages[props.tabbedPages.activePage])
+
 const tabs = computed(() => {
   const tabNames = Object.keys(props.tabbedPages.pages)
-  const totalWidth = tabNames.reduce((acc, name) => acc + name.length, 0)
   return tabNames.map(name => ({
     name,
-    width: name.length / totalWidth, 
     backgroundColor: props.tabbedPages.activePage == name ? shade(0.5, props.tabbedPages.spec.color) : props.tabbedPages.spec.color
   }))
 })
-
-const invLength = computed(() => 100 / tabs.reduce((acc, tab) => acc + tab.width, 0))
 
 const basisStyle = computed(() => {
   const color = props.tabbedPages.spec.color
@@ -45,7 +42,7 @@ const basisStyle = computed(() => {
         :class="{tabButton: true, active: tab.name === props.tabbedPages.activePage}"
         :key="tab.name"  
         @click="props.tabbedPages.activePage = tab.name" 
-        :style="{ width: tab.width * 100 + '%', backgroundColor: tab.backgroundColor }">
+        :style="{ backgroundColor: tab.backgroundColor }">
         {{ tab.name }}
       </div>
     </div>
@@ -76,11 +73,14 @@ const basisStyle = computed(() => {
     width: 100%;
     text-align: center;
     user-select: none;
+    display: flex;
+    justify-content: space-around;
 
+    /* tab buttons should be as wide as possible, given all the space they need. larger text should make the button wider */
     & .tabButton {
-      display: inline-block;
+      flex: auto; 
+      padding: 1rem 0.2rem;
       cursor: pointer;
-      padding: 1rem 0; 
     }
   }
   & .content {

@@ -100,13 +100,14 @@ class KeySignalRecord extends MidiSignalRecord {
 
 const recordsStore = ref({} as {[key: string]: MidiSignalRecord})
 
+const MOCK_TEST_SIGNAL = false
+
 onMounted(() => {
   midiListener.addListener(onMIDIMessage)
   startTime.value = Date.now()
   recordsStore.value
   tryResize()
-  {
-    // for debugging
+  if(MOCK_TEST_SIGNAL){
     const s = new ControllerSignalRecord('peter') 
     recordsStore.value['test signal'] = s
     s.touch()

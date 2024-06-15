@@ -1,7 +1,7 @@
 <script setup lang=ts>
 import { computed } from 'vue'
 
-import ControlsDict from '@/controls'
+import { type ControlsDict } from '@/controls'
 import ControlComponent from './Control.vue'
 
 // vue
