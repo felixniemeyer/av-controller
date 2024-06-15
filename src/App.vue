@@ -67,9 +67,9 @@ onBeforeMount(() => {
   }
 })
 
-openLinkedArtwork = () => {
-  openVisualsTab(linkedArtwork); 
-  linkedArtwork = ''
+const openLinkedArtwork = () => {
+  openVisualsTab(linkedArtwork.value); 
+  linkedArtwork.value = ''
 }
 
 const DEV_AUTO_OPEN = false
@@ -80,8 +80,6 @@ if(DEV_AUTO_OPEN) {
 }
 
 const controlledName = ref('')
-
-
 
 function openVisualsTab(visualTabUrl: string) {
   console.log('opening tab', visualTabUrl)
@@ -94,6 +92,7 @@ function openVisualsTab(visualTabUrl: string) {
     // append visualTabUrl to current url
     window.history.pushState({}, '', window.location.origin + window.location.pathname + '?control=' + visualTabUrl)
 
+    // wait for tab to call back
     const messageHandler = (event: MessageEvent) => {
       if(tab.value && event.origin == tabOrigin) {
         const type = event.data.type
