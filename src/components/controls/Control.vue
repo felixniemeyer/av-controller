@@ -14,6 +14,8 @@ import {
   Label,
   ConfirmSwitch,
   Cake,
+  PresetButton,
+  Letterbox,
 } from '@/controls'
 
 import GroupComponent from './Group.vue'
@@ -25,7 +27,9 @@ import ConfirmButtonComponent from './ConfirmButton.vue'
 import LabelComponent from './Label.vue'
 import ConfirmSwitchComponent from './ConfirmSwitch.vue'
 import CakeComponent from './Cake.vue'
+import PresetButtonComponent from './PresetButton.vue'
 import TabbedPagesComponent from './TabbedPages.vue'
+import LetterboxComponent from './Letterbox.vue'
 
 const props = defineProps({
   control: {
@@ -61,7 +65,9 @@ const showlabels = false
     <LabelComponent v-else-if="type === 'label'" :label="control as Label"/>
     <ConfirmSwitchComponent v-else-if="type === 'confirm-switch'" :confirmSwitch="control as ConfirmSwitch"/>
     <CakeComponent v-else-if="type === 'cake'" :cake="control as Cake"/>
+    <PresetButtonComponent v-else-if="type === 'preset-button'" :presetButton="control as PresetButton"/>
     <TabbedPagesComponent v-else-if="type === 'tabbed-pages'" :tabbedPages="control as TabbedPages"/>
+    <LetterboxComponent v-else-if="type === 'letterbox'" :letterbox="control as Letterbox"/>
     <div v-else>Unknown control type: {{ type }}</div>
   </div>
 </template>

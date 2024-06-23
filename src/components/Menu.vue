@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-import { type MenuSpec, type MenuItemSpec } from '@/menu-spec';
+import { type MenuSpec, type MenuItemSpec } from '@/menu-globals';
 
 const props = defineProps({
   menu: {
@@ -44,7 +44,7 @@ function performAction(action: any) {
       <p class="description">{{ props.menu.description }}</p>
       <button class="menuItem exitButton" @click="goBack">Back</button>
       <button class=menuItem tabindex="0" @click="handleClick(item)" v-for="(item, index) in props.menu.items" :key="index"
-                                                                    style="{backgroundColor: item.color}">
+                                                                    :style="{backgroundColor: item.color}">
           {{ item.name }} 
       </button>
     </div>

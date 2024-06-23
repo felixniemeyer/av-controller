@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeMount, reactive } from 'vue'
+import { ref, onBeforeMount, reactive } from 'vue'
 
 import { 
   Messages, 
@@ -11,9 +11,11 @@ import {
   LabelSpec,
   ConfirmSwitchSpec,
   CakeSpec,
+  PresetButtonSpec,
   GroupSpec,
   TabbedPagesSpec,
-type ControlSpecsDict,
+  LetterboxSpec,
+  type ControlSpecsDict,
 } from 'av-controls'
 
 import {
@@ -29,7 +31,11 @@ import {
   Label,
   ConfirmSwitch,
   Cake,
+  PresetButton, 
+  Letterbox,
 } from './controls'
+
+import AreaComponent from './components/controls/Area.vue'
 
 import type { ControlId } from 'av-controls/src/messages'
 
@@ -45,7 +51,23 @@ import { type MidiSource } from './mappings'
 import { Mapping, CCToFaderMapping, KeyToPadMapping } from './mappings'
 
 import Menu from './components/Menu.vue'
-import { type MenuSpec } from './menu-spec'
+
+import { 
+  textInputHandler, 
+  textInputTitle, 
+  textInputPlaceholder, 
+
+  fileInputHandler,
+  fileInputTitle,
+  fileInputDescription,
+
+  confirmHandler,
+  confirmTitle,
+  confirmMessage,
+
+  menuActionHandler,
+  menu, 
+} from './menu-globals'
 
 import TextInputPrompt from './components/TextInputPrompt.vue'
 import FileInputPrompt from './components/FileInputPrompt.vue'
@@ -54,7 +76,9 @@ import ConfirmPrompt from './components/ConfirmPrompt.vue'
 let tab = ref(null as Window | null)
 let tabOrigin: string
 
-const page = ref<Group>()
+const DEV_AUTO_OPEN = true
+
+const controls = ref<ControlsDict>({})
 let receiverId = ''
 
 const linkedArtwork = ref('')
@@ -63,20 +87,17 @@ onBeforeMount(() => {
   const urlParams = new URLSearchParams(window.location.search)
   const visualTabUrl = urlParams.get('control')
   if(visualTabUrl) {
-    linkedArtwork.value = visualTabUrl
+    if(DEV_AUTO_OPEN) {
+      openVisualsTab(visualTabUrl)
+    } else {
+      linkedArtwork.value = visualTabUrl
+    }
   }
 })
 
 const openLinkedArtwork = () => {
   openVisualsTab(linkedArtwork.value); 
   linkedArtwork.value = ''
-}
-
-const DEV_AUTO_OPEN = false
-if(DEV_AUTO_OPEN) {
-  onMounted(() => {
-    openVisualsTab('http://localhost:5173')
-  })
 }
 
 const controlledName = ref('')
@@ -100,18 +121,13 @@ function openVisualsTab(visualTabUrl: string) {
           const announcement = event.data as Messages.AnnounceReceiver
           controlledName.value = announcement.name
           controlsLabel.value.spec.name = `controlling ${announcement.name}`
-          const controls = createControls(announcement.controlSpecs)
-          const pageSpec = new GroupSpec('1', 0, 0, 100, 100, '#000', announcement.controlSpecs, 'page')
-          page.value = reactive(new Group(
-            pageSpec, 
-            controls
-          ))
+          controls.value = reactive(createControls(announcement.controlSpecs))
           receiverId = announcement.receiverId
         } else if(type === Messages.MeterMessage.type) {
           const msg = event.data as Messages.MeterMessage
           if(msg.receiverId == receiverId) {
-            if(page.value) {
-              page.value.update(msg.payload, msg.controlId)
+            if(controls.value) {
+              controls.value[msg.controlId[0]].update(msg.payload, msg.controlId.splice(1))
             }
           }
         } else if(type === Messages.TabClosing.type) {
@@ -122,6 +138,62 @@ function openVisualsTab(visualTabUrl: string) {
       }
     } 
     window.addEventListener('message', messageHandler)
+  }
+}
+
+function gatherPreset(_stencil: any) {
+  console.log('gather preset')
+  return recursivelyGatherPreset(controls.value)
+}
+
+function recursivelyGatherPreset(controls: ControlsDict, ) : any {
+  const preset = {} as any
+  for(let controlId in controls) {
+    console.log('controlId', controlId)
+    const control = controls[controlId]
+    if(control instanceof Group) {
+      preset[controlId] = {
+        type: 'group', 
+        children: recursivelyGatherPreset(control.controls), 
+        controlId
+      }
+    } else if (control instanceof TabbedPages) {
+      const pages = {} as {[pageId: string]: ControlsDict}
+      for(let pageId in control.pages) {
+        pages[pageId] = recursivelyGatherPreset(control.pages[pageId])
+      }
+      preset[controlId] = {
+        type: 'tabbed-pages', 
+        pages, 
+        controlId
+      }
+    } else {
+      const control = controls[controlId]
+      preset[controlId] = control.getState()
+    }
+  }
+  return preset
+}
+
+
+function applyPreset(preset: any) {
+  console.log('apply preset')
+  recursivelyApplyPreset(preset, controls.value)
+}
+
+function recursivelyApplyPreset(preset: any, controls: ControlsDict, ) {
+  for(let controlId in preset) {
+    const control = controls[controlId]
+    if(control instanceof Group) {
+      recursivelyApplyPreset(preset[controlId].children, control.controls)
+    } else if (control instanceof TabbedPages) {
+      for(let pageId in preset[controlId].pages) {
+        recursivelyApplyPreset(preset[controlId].pages[pageId], control.pages[pageId])
+      }
+    } else {
+      const control = controls[controlId]
+      control.setState(preset[controlId])
+    }
   }
 }
 
@@ -146,6 +218,10 @@ function createControls(specs: ControlSpecsDict, idPath: ControlId = []) {
       control = new Label(spec as LabelSpec)
     } else if(spec.type === 'cake') {
       control = new Cake(spec as CakeSpec)
+    } else if(spec.type === 'preset-button') {
+      control = new PresetButton(spec as PresetButtonSpec, gatherPreset, applyPreset)
+    } else if(spec.type === 'letterbox') {
+      control = new Letterbox(spec as LetterboxSpec)
     } else if(spec.type === 'group') {
       const groupSpec = spec as GroupSpec
       control = new Group(groupSpec, createControls(groupSpec.controlSpecs, idPath.concat(id)))
@@ -199,28 +275,26 @@ function getControl(controls: ControlsDict, idPath: ControlId) {
 }
 
 function controllerTouched(controlId: ControlId) {
-  if(page.value) {
-    const control = getControl(page.value.controls, controlId)
-    if(rmMapButton.value.on) {
-      for(let midiSourceId in mappingsBySource) {
-        control.removeMappings()
-        const mappings = mappingsBySource[midiSourceId]
-        let removedSome = false
-        for(let i = 0; i < mappings.length; i++) {
-          if(mappings[i].control == control) {
-            mappings.splice(i, 1)
-            removedSome = true
-          }
-        }
-        if(removedSome) {
-          rmMapButton.value.on = false
+  const control = getControl(controls.value, controlId)
+  if(rmMapButton.value.on) {
+    for(let midiSourceId in mappingsBySource) {
+      control.removeMappings()
+      const mappings = mappingsBySource[midiSourceId]
+      let removedSome = false
+      for(let i = 0; i < mappings.length; i++) {
+        if(mappings[i].control == control) {
+          mappings.splice(i, 1)
+          removedSome = true
         }
       }
-    } else if(midiSourceForMapping.value !== null) {
-      if(addMappingToControl(midiSourceForMapping.value, control)) {
-        midiSourceForMapping.value = null
-        mapSwitch.value.on = false
+      if(removedSome) {
+        rmMapButton.value.on = false
       }
+    }
+  } else if(midiSourceForMapping.value !== null) {
+    if(addMappingToControl(midiSourceForMapping.value, control)) {
+      midiSourceForMapping.value = null
+      mapSwitch.value.on = false
     }
   }
 }
@@ -267,7 +341,7 @@ const controlsLabel = ref(new Label(
 ))
 
 const mapSwitch = ref(new Switch(
-  new SwitchSpec('map', 93.333, 0, 6.666, 100, '#2aa', false)
+  new SwitchSpec('map', 90, 0, 10, 100, '#2aa', false)
 ))
 mapSwitch.value.onUpdate = (isOn: boolean) => {
   showMidiSignals.value = isOn 
@@ -277,7 +351,7 @@ mapSwitch.value.onUpdate = (isOn: boolean) => {
 }
 
 const rmMapButton = ref(new Switch (
-  new SwitchSpec('remove mapping', 86.666, 0, 6.666, 100, '#c23', false)
+  new SwitchSpec('remove mapping', 80, 0, 10, 100, '#c23', false)
 ))
 
 // load list of saved mappings names from local storage for current controllable
@@ -304,7 +378,7 @@ function saveMappings(name: string) {
   let mappingsForControllable = savedMappings[controlledName.value]
   const write = () => {
     // serialize mappings
-    const mappings = recursivelyGatherMappings(page.value!.controls)
+    const mappings = recursivelyGatherMappings(controls.value!)
     console.log('gathered for saving:', mappings)
     mappingsForControllable[name] = mappings
     localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
@@ -338,7 +412,7 @@ function deleteMapping(name: string) {
 }
 
 function exportMappingsAsFile() {
-  const mappings = recursivelyGatherMappings(page.value!.controls)
+  const mappings = recursivelyGatherMappings(controls.value!)
   // export as download file
   const blob = new Blob([JSON.stringify(mappings)], {type: 'application/json'})
   const url = URL.createObjectURL(blob)
@@ -409,8 +483,13 @@ function loadMappings(name: string) {
 }
 
 function importMappingsFromFile(file: File) {
-  // ask for upload
-
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    const mappings = JSON.parse(event.target!.result as string)
+    removeAllMappings()
+    recursivelyAddMappings(mappings)
+  }
+  reader.readAsText(file)
 }
 
 function recursivelyAddMappings(mappings: any, path: string[] = []) {
@@ -423,8 +502,8 @@ function recursivelyAddMappings(mappings: any, path: string[] = []) {
         recursivelyAddMappings(node.pages[pageId], fullId.concat(pageId))
       }
     } else {
-      if(page.value) {
-        const control = getControl(page.value.controls, fullId)
+      if(controls.value) {
+        const control = getControl(controls.value, fullId)
         addMappingToControl(node.source, control)
       }
     }
@@ -440,14 +519,15 @@ function removeAllMappings() {
   mappingsBySource = {}
 }
 
-const menu = ref(null as (null | MenuSpec))
 const manageMappingsButton = new Pad(
-  new PadSpec('manage mappings', 80, 0, 6.666, 100, '#2a2'),
+  new PadSpec('manage mappings', 70, 0, 10, 100, '#2a2'),
 )
+
 manageMappingsButton.onUpdate = (payload) => {
   if(payload.press) {
     const savedMappings = getSavedMappings()
     const mappingNames = Object.keys(savedMappings)
+    menuActionHandler.value = handleMappingMangeMenuAction
     menu.value = {
       name: 'Manage mappings',
       description: 'Save, load, export, import or delete midi mappings for ' + controlledName.value,
@@ -518,19 +598,7 @@ manageMappingsButton.onUpdate = (payload) => {
   }
 }
 
-const textInputHandler = ref(null as null | ((value: string) => void))
-const textInputTitle = ref('')
-const textInputPlaceholder = ref('') 
-
-const fileInputHandler = ref(null as null | ((file: File) => void))
-const fileInputTitle = ref('')
-const fileInputDescription = ref('')
-
-const confirmHandler = ref(null as null | ((confirmed: boolean) => void))
-const confirmTitle = ref('')
-const confirmMessage = ref('')
-
-function handleMenuAction(action: any) {
+function handleMappingMangeMenuAction(action: any) {
   if(action.type == 'new') {
     textInputTitle.value = 'Enter the name for the new mapping'
     textInputPlaceholder.value = 'new mapping name'
@@ -567,10 +635,6 @@ function handleMenuAction(action: any) {
   }
 }
 
-function closeMenu() {
-  textInputHandler.value = null
-}
-
 function sendUpdateToTab(payload: any, controlId: ControlId) {
   if(tab.value == null) {
     return
@@ -594,7 +658,7 @@ function mapMIDIActivity(midiSource: MidiSource) {
       @confirm="openLinkedArtwork"
       @cancel="linkedArtwork = ''"
   />
-  <Gallery v-else-if="!DEV_AUTO_OPEN && tab == null" @open-visuals-tab='openVisualsTab'/>
+  <Gallery v-else-if="tab == null" @open-visuals-tab='openVisualsTab'/>
   <div v-else class="app">
     <div class="control-header">
       <ControlComponent :control="exitButton" />
@@ -607,18 +671,18 @@ function mapMIDIActivity(midiSource: MidiSource) {
     </div>
     <MIDISignalLogger v-if="showMidiSignals" @select="mapMIDIActivity"/>
     <div v-else class="control-area">
-      <div v-if="page === undefined" class='wait-screen'>
+      <div v-if="controls === undefined" class='wait-screen'>
         <p>Waiting for controls...</p>
         <button @click="tab = null">abort / go back</button>
       </div>
-      <ControlComponent v-else :control="page"/> 
+      <AreaComponent v-else :controls="controls"/> 
     </div>
   </div>
   <Menu 
     v-if="menu" 
     :menu="menu" 
     @back="menu = null"
-    @action="handleMenuAction" />
+    @action="menuActionHandler" />
   <TextInputPrompt 
     v-if='textInputHandler'
     :title='textInputTitle'
@@ -666,9 +730,9 @@ button {
 
 .control-area {
   position: absolute;
-  top: 4.5rem;
+  top: 5rem;
   left: 0;
-  height: calc(100% - 4.5rem);
+  height: calc(100% - 5rem);
   width: calc(100%);
   box-sizing: border-box;
 }

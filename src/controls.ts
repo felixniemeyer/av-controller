@@ -10,8 +10,10 @@ import {
   LabelSpec,
   ConfirmButtonSpec,
   CakeSpec,
+  PresetButtonSpec, 
   GroupSpec,
   TabbedPagesSpec,
+  LetterboxSpec,
 } from 'av-controls'
 import type { Mapping } from './mappings'
 
@@ -30,7 +32,7 @@ export abstract class Control {
   ) { }
 
   tabIndex() {
-    return 777 + this.spec.x * 101 + this.spec.y
+    return 0
   }
 
   addMapping(mapping: Mapping) {
@@ -42,6 +44,13 @@ export abstract class Control {
   }
 
   update(_payload: any, _id: ControlId = []) {
+  }
+
+  getState() : any {
+    return undefined
+  }
+
+  setState(_state: any) {
   }
 }
 export type ControlsDict = {[id: string]: Control}
@@ -108,6 +117,14 @@ export class Fader extends Control {
 
   getNormValue() {
     return (this.value - this.spec.min) / (this.spec.max - this.spec.min)
+  }
+
+  getState() {
+    return this.value
+  }
+
+  setState(state: number) {
+    this.setValue(state)
   }
 }
 
@@ -258,9 +275,93 @@ export class Cake extends Control {
   }
 
   update(payload: number) {
-    if(typeof payload === 'number') {
-      this.value = payload
-    }
+    this.value = payload
   }
 }
 
+type Preset = any
+type Stencil = any
+
+export class PresetButton extends Control {
+  private presets: {[id: string]: any} = {}
+
+  private lastPresetLoaded: string | undefined
+
+  constructor(
+    public spec: PresetButtonSpec,
+    private gatherPreset: (stencil: Stencil) => Preset,
+    private applyPreset: (preset: Preset) => Stencil,
+  ) {
+    super()
+  }
+  
+  update(payload: any) {
+    // do nothing
+    if(payload.action = 'next') {
+      this.nextPresetInRow()
+    } else if(payload.action = 'random') {
+      this.randomPreset()
+    }
+  }
+
+  save(id: string) {
+    const preset = this.gatherPreset(this.spec.stencil)
+    this.presets[id] = preset
+  }
+
+  load(id: string) {
+    const preset = this.presets[id]
+    if(preset !== undefined) {
+      this.applyPreset(preset)
+      this.lastPresetLoaded = id
+    }
+  }
+
+  delete(id: string) {
+    delete this.presets[id]
+  }
+
+  nextPresetInRow() {
+    const presetIds = Object.keys(this.presets)
+    if(presetIds.length > 0) {
+      let i = 0
+      if(this.lastPresetLoaded !== undefined) {
+        i = (presetIds.indexOf(this.lastPresetLoaded) + 1) % presetIds.length
+      } 
+      const nextPresetId = presetIds[i]
+      this.loadPreset(nextPresetId)
+    }
+  }
+
+  randomPreset() {
+    const presetIds = Object.keys(this.presets)
+    if(presetIds.length > 0) {
+      let i = Math.floor(Math.random() * Object.keys(this.presets).length - 1)
+      if(this.lastPresetLoaded !== undefined) { 
+        const prevIndex = presetIds.indexOf(this.lastPresetLoaded)
+        if(i >= prevIndex) {
+          i++
+        }
+      }
+      const nextPresetId = presetIds[i]
+      this.loadPreset(nextPresetId)
+    }
+  }
+
+  getNames() {
+    return Object.keys(this.presets)
+  }
+}
+
+export class Letterbox extends Control {
+
+  constructor(
+    public spec: LetterboxSpec, 
+  ) {
+    super()
+  }
+
+  send(message: string) {
+    this.onUpdate(message)
+  }
+}
