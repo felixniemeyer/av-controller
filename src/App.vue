@@ -76,7 +76,7 @@ import ConfirmPrompt from './components/ConfirmPrompt.vue'
 let tab = ref(null as Window | null)
 let tabOrigin: string
 
-const DEV_AUTO_OPEN = true
+const DEV_AUTO_OPEN = !(import.meta.env.MODE == 'production')
 
 const controls = ref<ControlsDict>({})
 let receiverId = ''
@@ -141,35 +141,37 @@ function openVisualsTab(visualTabUrl: string) {
   }
 }
 
-function gatherPreset(_stencil: any) {
+function gatherPreset(stencil: any) {
   console.log('gather preset')
-  return recursivelyGatherPreset(controls.value)
+  return recursivelyGatherPreset(stencil, controls.value)
 }
 
-function recursivelyGatherPreset(controls: ControlsDict, ) : any {
+function recursivelyGatherPreset(stencil: any, controls: ControlsDict, ) : any {
   const preset = {} as any
   for(let controlId in controls) {
-    console.log('controlId', controlId)
-    const control = controls[controlId]
-    if(control instanceof Group) {
-      preset[controlId] = {
-        type: 'group', 
-        children: recursivelyGatherPreset(control.controls), 
-        controlId
-      }
-    } else if (control instanceof TabbedPages) {
-      const pages = {} as {[pageId: string]: ControlsDict}
-      for(let pageId in control.pages) {
-        pages[pageId] = recursivelyGatherPreset(control.pages[pageId])
-      }
-      preset[controlId] = {
-        type: 'tabbed-pages', 
-        pages, 
-        controlId
-      }
-    } else {
+    const stencilValue = stencil[controlId]
+    if(!stencilValue) {
       const control = controls[controlId]
-      preset[controlId] = control.getState()
+      if(control instanceof Group) {
+        preset[controlId] = {
+          type: 'group', 
+          children: recursivelyGatherPreset(stencil, control.controls), 
+          controlId
+        }
+      } else if (control instanceof TabbedPages) {
+        const pages = {} as {[pageId: string]: ControlsDict}
+        for(let pageId in control.pages) {
+          pages[pageId] = recursivelyGatherPreset(stencil, control.pages[pageId])
+        }
+        preset[controlId] = {
+          type: 'tabbed-pages', 
+          pages, 
+          controlId
+        }
+      } else {
+        const control = controls[controlId]
+        preset[controlId] = control.getState()
+      }
     }
   }
   return preset
@@ -177,7 +179,6 @@ function recursivelyGatherPreset(controls: ControlsDict, ) : any {
 
 
 function applyPreset(preset: any) {
-  console.log('apply preset')
   recursivelyApplyPreset(preset, controls.value)
 }
 
@@ -310,6 +311,8 @@ function addMappingToControl(midiSource: MidiSource, control: Control) {
   } else if(midiSource.type == 'key') {
     if(control instanceof Pad) {
       c = new KeyToPadMapping(control)
+    } else if (control instanceof Switch) {
+      c = new KeyToSwitchMapping(control)
     } else {
       console.warn('note on to non-pad not implemented')
     }
@@ -379,7 +382,6 @@ function saveMappings(name: string) {
   const write = () => {
     // serialize mappings
     const mappings = recursivelyGatherMappings(controls.value!)
-    console.log('gathered for saving:', mappings)
     mappingsForControllable[name] = mappings
     localStorage.setItem('savedMappings', JSON.stringify(savedMappings))
   }
@@ -387,7 +389,6 @@ function saveMappings(name: string) {
     mappingsForControllable = savedMappings[controlledName.value] = {}
   } 
   if(mappingsForControllable[name]) {
-    console.warn('overwriting existing mapping', name)
     confirmTitle.value = 'Overwrite mapping'
     confirmMessage.value = 'Are you sure you want to overwrite the mapping ' + name + '?'
     confirmHandler.value = () => {
@@ -424,10 +425,8 @@ function exportMappingsAsFile() {
 }
 
 function recursivelyGatherMappings(controls: ControlsDict, ) : any {
-  console.log('called recursivelyGatherMappings with', controls)
   const mappings = []
   for(let controlId in controls) {
-    console.log('controlId', controlId)
     const control = controls[controlId]
     if(control instanceof Group) {
       mappings.push({

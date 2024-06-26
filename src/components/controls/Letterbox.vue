@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 
 // for color manipulation
-import { shade } from 'polished'
 import { Letterbox } from '@/controls'
 
 import MappingsIndicator from '../MappingsIndicator.vue'
@@ -15,19 +14,10 @@ const props = defineProps({
   },
 })
 
-const color = computed(() => {
-  const spec = props.letterbox.spec
-  if (props.letterbox.pressed) {
-    return shade(0.35, spec.color)
-  } else {
-    return spec.color
-  }
-})
-
 const basisStyle = computed(() => {
   const spec = props.letterbox.spec
   return {
-    backgroundColor: color.value,
+    backgroundColor: spec.color,
     boxShadow: `0 0 2rem -0.5rem ${spec.color}`,
     borderColor: spec.color,
   }

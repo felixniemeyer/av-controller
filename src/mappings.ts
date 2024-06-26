@@ -1,4 +1,4 @@
-import { Control, Fader, Pad } from './controls'
+import { Control, Fader, Pad, Switch } from './controls'
 import { ControlChange, NoteOn, MidiSignal, NoteOff} from '@/midiListener'
 
 export interface MidiSource {
@@ -35,6 +35,19 @@ export class KeyToPadMapping extends Mapping {
       this.control.press(signal.velocity / 127)
     } else if (signal instanceof NoteOff) {
       this.control.release()
+    }
+  }
+}
+
+export class KeyToSwitchMapping extends Mapping {
+  constructor(
+    public control: Switch
+  ) {
+    super()
+  }
+  handleSignal(signal: MidiSignal) {
+    if(signal instanceof NoteOn) {
+      this.control.toggle()
     }
   }
 }

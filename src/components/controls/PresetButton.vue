@@ -12,7 +12,8 @@ import {
   menu, menuActionHandler, 
   textInputTitle, textInputPlaceholder, textInputHandler, 
   confirmTitle, confirmMessage, confirmHandler, 
-  fileInputTitle, fileInputDescription, fileInputHandler, type MenuItemSpec 
+  fileInputTitle, fileInputDescription, fileInputHandler, 
+  type MenuItemSpec 
 } from '@/menu-globals'
 
 // vue
@@ -39,7 +40,7 @@ function openMenu(_e: Event) {
       name: 'save',
       submenu: {
         name: 'Saving preset as ...', 
-        description: 'Overwrite a setting or save the current mappings as a new file',
+        description: 'Overwrite a setting or save the current presets as a new file',
         items: [
           ...presetNames.map(name => ({
             name: name,
@@ -47,7 +48,7 @@ function openMenu(_e: Event) {
               type: 'save-as', 
               name
             }, 
-            color: '#f88',
+            color: '#ea8',
           })),
           ...Array.from({length: 8}, (_, i) => i).filter(i => !presetNames.includes(`${i}`)).map(i => ({
             name: `${i}`,
@@ -66,13 +67,25 @@ function openMenu(_e: Event) {
         ],
       },
     },
+    {
+      name: 'import',
+      action: {
+        type: 'import'
+      }
+    },
+    {
+      name: 'export',
+      action: {
+        type: 'export'
+      }
+    },
   ] as MenuItemSpec[]
   if(presetNames.length > 0) {
     items.push({
       name: 'load',
       submenu: {
-        name: 'Load saved mapping', 
-        description: 'Load a saved mapping. This will override the currently active mapping', 
+        name: 'Load saved preset', 
+        description: 'Load a saved preset. This will override the currently active mapping', 
         items: presetNames.map(name => ({
           name, 
           action: {
@@ -85,8 +98,8 @@ function openMenu(_e: Event) {
     items.push({
       name: 'delete',
       submenu: {
-        name: 'Delete saved mapping', 
-        description: 'Delete a mapping. This cannot be undone and the mapping can\'t be loaded anymore afterwards.', 
+        name: 'Delete saved preset', 
+        description: 'Delete a preset. This cannot be undone and the mapping can\'t be loaded anymore afterwards.', 
         items: presetNames.map(name => ({
           name, 
           action: {
@@ -109,8 +122,8 @@ function openMenu(_e: Event) {
 
 function handleMenuAction(action: any) {
   if(action.type == 'save-as-prompt') {
-    textInputTitle.value = 'Enter the name for the new mapping'
-    textInputPlaceholder.value = 'new mapping name'
+    textInputTitle.value = 'Enter the name for the new preset'
+    textInputPlaceholder.value = 'new preset name'
     textInputHandler.value = (newPresetName) => {
       props.presetButton.save(newPresetName)
       textInputHandler.value = null
@@ -123,9 +136,25 @@ function handleMenuAction(action: any) {
     props.presetButton.load(action.name)
     menu.value = null
   } else if(action.type == 'delete') {
-    props.presetButton.delete(action.name)
+    confirmTitle.value = 'Delete preset'
+    confirmMessage.value = `Do you really want to delete the preset "${action.name}"?`
+    confirmHandler.value = () => {
+      props.presetButton.delete(action.name)
+      confirmHandler.value = null
+      menu.value = null
+    }
+  } else if(action.type == 'import') {
+    fileInputTitle.value = 'Import presets'
+    fileInputDescription.value = 'Upload a presets file from your computer in order to import presets'
+    fileInputHandler.value = (file) => {
+      props.presetButton.importAll(file)
+      fileInputHandler.value = null
+      menu.value = null
+    }
+  } else if(action.type == 'export') {
+    props.presetButton.exportAll()
     menu.value = null
-  } 
+  }
 }
 
 </script>

@@ -29,5 +29,5 @@ export const confirmHandler = ref(null as null | ((confirmed: boolean) => void))
 export const confirmTitle = ref('')
 export const confirmMessage = ref('')
 
-export const menuActionHandler = ref(null as null | ((...args: any[]) => void))
+export const menuActionHandler = ref(undefined as undefined | ((...args: any[]) => any))
 

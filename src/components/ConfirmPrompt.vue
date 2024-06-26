@@ -74,6 +74,7 @@ function handleConfirm() {
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  padding: 2rem;
 }
 
 .button.cancel {

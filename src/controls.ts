@@ -164,6 +164,14 @@ export class Switch extends Control {
     this.on = !this.on
     this.onUpdate(this.on)
   }
+
+  getState() {
+    return this.on
+  }
+
+  setState(state: boolean) {
+    this.on = state
+  }
 }
 
 export class Selector extends Control {
@@ -187,6 +195,14 @@ export class Selector extends Control {
 
   decrement() {
     this.index = (this.index - 1 + this.spec.options.length) % this.spec.options.length
+  }
+
+  getState() {
+    return this.index
+  }
+
+  setState(state: number) {
+    this.select(state)
   }
 }
 
@@ -296,10 +312,9 @@ export class PresetButton extends Control {
   }
   
   update(payload: any) {
-    // do nothing
-    if(payload.action = 'next') {
+    if(payload.action == 'next') {
       this.nextPresetInRow()
-    } else if(payload.action = 'random') {
+    } else if(payload.action == 'random') {
       this.randomPreset()
     }
   }
@@ -317,6 +332,28 @@ export class PresetButton extends Control {
     }
   }
 
+  exportAll() {
+    const blob = new Blob([JSON.stringify(this.presets)], {type: 'application/json'})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const filename = this.spec.name.replace(' ', '-')
+    a.download = `${filename}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  importAll(file: File) {
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const presets = JSON.parse(event.target!.result as string)
+      for(const id in presets) {
+        this.presets[id] = presets[id]
+      }
+    }
+    reader.readAsText(file)
+  }
+
   delete(id: string) {
     delete this.presets[id]
   }
@@ -329,22 +366,22 @@ export class PresetButton extends Control {
         i = (presetIds.indexOf(this.lastPresetLoaded) + 1) % presetIds.length
       } 
       const nextPresetId = presetIds[i]
-      this.loadPreset(nextPresetId)
+      this.load(nextPresetId)
     }
   }
 
   randomPreset() {
     const presetIds = Object.keys(this.presets)
     if(presetIds.length > 0) {
-      let i = Math.floor(Math.random() * Object.keys(this.presets).length - 1)
+      let i = Math.floor(Math.random() * (Object.keys(this.presets).length))
       if(this.lastPresetLoaded !== undefined) { 
         const prevIndex = presetIds.indexOf(this.lastPresetLoaded)
         if(i >= prevIndex) {
-          i++
+          i = (i + 1) % presetIds.length
         }
-      }
+      } 
       const nextPresetId = presetIds[i]
-      this.loadPreset(nextPresetId)
+      this.load(nextPresetId)
     }
   }
 
