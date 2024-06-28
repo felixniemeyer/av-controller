@@ -185,11 +185,16 @@ function applyPreset(preset: any) {
 function recursivelyApplyPreset(preset: any, controls: ControlsDict, ) {
   for(let controlId in preset) {
     const control = controls[controlId]
-    if(control instanceof Group) {
+    if(control === undefined) {
+      return; 
+    } else if(control instanceof Group) {
       recursivelyApplyPreset(preset[controlId].children, control.controls)
     } else if (control instanceof TabbedPages) {
       for(let pageId in preset[controlId].pages) {
-        recursivelyApplyPreset(preset[controlId].pages[pageId], control.pages[pageId])
+        const page = control.pages[pageId]
+        if(page !== undefined) {
+          recursivelyApplyPreset(preset[controlId].pages[pageId], page)
+        }
       }
     } else {
       const control = controls[controlId]

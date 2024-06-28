@@ -326,6 +326,7 @@ export class PresetButton extends Control {
 
   load(id: string) {
     const preset = this.presets[id]
+    console.log('shall load', id)
     if(preset !== undefined) {
       this.applyPreset(preset)
       this.lastPresetLoaded = id
@@ -373,13 +374,18 @@ export class PresetButton extends Control {
   randomPreset() {
     const presetIds = Object.keys(this.presets)
     if(presetIds.length > 0) {
-      let i = Math.floor(Math.random() * (Object.keys(this.presets).length))
+      let i 
       if(this.lastPresetLoaded !== undefined) { 
+        // don't "switch" to the same id
+        i = Math.floor(Math.random() * (presetIds.length - 1))
+        console.log('chose i from', presetIds.length - 1)
         const prevIndex = presetIds.indexOf(this.lastPresetLoaded)
         if(i >= prevIndex) {
-          i = (i + 1) % presetIds.length
+          i += 1 
         }
-      } 
+      } else {
+        i = Math.floor(Math.random() * presetIds.length)
+      }
       const nextPresetId = presetIds[i]
       this.load(nextPresetId)
     }
